@@ -1,0 +1,5 @@
+.env
+*.env.local
+
+# k8s secret 파일 직접 만들면 올라가지 않도록
+k8s/**/secret.yaml

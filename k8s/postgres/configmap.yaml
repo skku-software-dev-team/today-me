@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: dev
+data:
+  01_extensions.sql: |
+    CREATE EXTENSION IF NOT EXISTS vector;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+  02_users.sql: |
+    CREATE TABLE IF NOT EXISTS users (
+        id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        email       TEXT UNIQUE NOT NULL,
+        nickname    TEXT,
+        avatar_url  TEXT,
+        created_at  TIMESTAMPTZ DEFAULT NOW(),
+        updated_at  TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS oauth_accounts (
+        id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id      UUID REFERENCES users(id) ON DELETE CASCADE,
+        provider     TEXT NOT NULL,
+        provider_uid TEXT NOT NULL,
+        access_token TEXT,
+        created_at   TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE (provider, provider_uid)
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+        id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+        refresh_token TEXT UNIQUE NOT NULL,
+        expires_at    TIMESTAMPTZ NOT NULL,
+        created_at    TIMESTAMPTZ DEFAULT NOW()
+    );
+
+  03_vectors.sql: |
+    CREATE TABLE IF NOT EXISTS daily_states (
+        id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+        mood       TEXT NOT NULL,
+        weather    TEXT,
+        energy     INTEGER CHECK (energy BETWEEN 1 AND 5),
+        picks      JSONB,
+        moodboard  TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS preference_embeddings (
+        id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+        state_id   UUID REFERENCES daily_states(id) ON DELETE CASCADE,
+        embedding  vector(768),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS preference_embeddings_ivfflat_idx
+        ON preference_embeddings
+        USING ivfflat (embedding vector_cosine_ops)
+        WITH (lists = 100);
