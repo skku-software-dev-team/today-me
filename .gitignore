@@ -3,3 +3,18 @@
 
 # k8s secret 파일 직접 만들면 올라가지 않도록
 k8s/**/secret.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+backend/.venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
