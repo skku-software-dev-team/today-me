@@ -26,7 +26,7 @@ kubectl create secret generic app-secret \
   --from-literal=REDIS_URL="redis://redis-svc:6379" \
   --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
   --from-literal=GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
-  --from-literal=GOOGLE_REDIRECT_URI="${GOOGLE_REDIRECT_URI:-http://localhost/auth/google/callback}" \
+  --from-literal=GOOGLE_REDIRECT_URI="${GOOGLE_REDIRECT_URI:-http://localhost/api/sauth/google/callback}" \
   --from-literal=JWT_SECRET="$JWT_SECRET" \
   --from-literal=FRONTEND_URL="${FRONTEND_URL:-http://localhost}" \
   --dry-run=client -o yaml | kubectl apply -f -

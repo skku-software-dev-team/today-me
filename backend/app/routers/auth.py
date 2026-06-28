@@ -15,7 +15,7 @@ from app.services.auth import (
 )
 from app.core.config import settings
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
@@ -28,7 +28,7 @@ def _set_refresh_cookie(response: Response, token: str):
         secure=False,        # prod에서는 True로
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
-        path="/auth",
+        path="/api/auth",
     )
 
 
@@ -80,5 +80,5 @@ async def logout(
 ):
     if refresh_token:
         await revoke_refresh_token(refresh_token, redis)
-    response.delete_cookie("refresh_token", path="/auth")
+    response.delete_cookie("refresh_token", path="/api/auth")
     return {"ok": True}

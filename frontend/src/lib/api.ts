@@ -14,7 +14,7 @@ export function clearAccessToken() {
 
 // refresh_token 쿠키로 access_token 재발급
 export async function refreshAccessToken(): Promise<string | null> {
-  const res = await fetch("/auth/refresh", { method: "POST", credentials: "include" });
+  const res = await fetch("/api/auth/refresh", { method: "POST", credentials: "include" });
   if (!res.ok) return null;
   const { access_token } = await res.json();
   setAccessToken(access_token);

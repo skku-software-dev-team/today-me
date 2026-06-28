@@ -26,11 +26,12 @@ echo "==> backend / frontend 배포"
 kubectl apply -f k8s/backend/deployment.yaml
 kubectl apply -f k8s/frontend/deployment.yaml
 
+echo "==> ingress 적용"
+kubectl apply -f k8s/ingress.yaml
+
 echo ""
 echo "==> Pod 상태 확인"
 kubectl get pods -n "$NAMESPACE"
 
 echo ""
-# frontend NodePort 찾아서 출력
-NODE_PORT=$(kubectl get svc frontend-svc -n "$NAMESPACE" -o jsonpath='{.spec.ports[0].nodePort}' 2>/dev/null || echo "pending")
-echo "==> 접속 주소: http://localhost:${NODE_PORT}"
+echo "==> 접속 주소: http://localhost"

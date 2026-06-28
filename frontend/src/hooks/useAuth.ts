@@ -13,11 +13,11 @@ export function useAuth() {
   }, []);
 
   function login() {
-    window.location.href = "/auth/google";
+    window.location.href = "/api/auth/google";
   }
 
   async function logout() {
-    await fetch("/auth/logout", { method: "POST", credentials: "include" });
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     clearAccessToken();
     setState("unauthenticated");
   }

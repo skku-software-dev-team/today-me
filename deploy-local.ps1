@@ -20,10 +20,12 @@ Write-Host "==> backend / frontend 배포"
 kubectl apply -f k8s/backend/deployment.yaml
 kubectl apply -f k8s/frontend/deployment.yaml
 
+Write-Host "==> ingress 적용"
+kubectl apply -f k8s/ingress.yaml
+
 Write-Host ""
 Write-Host "==> Pod 상태 확인"
 kubectl get pods -n $Namespace
 
 Write-Host ""
-$nodePort = kubectl get svc frontend-svc -n $Namespace -o jsonpath='{.spec.ports[0].nodePort}' 2>$null
-Write-Host "==> 접속 주소: http://localhost:$nodePort"
+Write-Host "==> 접속 주소: http://localhost"
