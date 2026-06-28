@@ -1,75 +1,63 @@
-# today-i
+# today-me
 
-## 로컬 개발 환경 세팅
+## 시작하기
 
 ### 사전 준비
 1. [Docker Desktop](https://www.docker.com/products/docker-desktop/) 설치
 2. Docker Desktop → Settings → Kubernetes → **Enable Kubernetes** 체크 → Apply & Restart
-
-### 최초 1회 세팅
-
+3. `.env` 파일 생성
 ```bash
-# 1. 레포 클론
-git clone https://github.com/skku-software-dev-team/today-me.git
-cd today-me
-
-# 2. .env 파일 생성
 cp .env.example .env
-# .env 열어서 POSTGRES_PASSWORD 채우기
-
-# 3. 컨텍스트 확인
-kubectl config use-context docker-desktop
-
-# 4. 네임스페이스 생성
-kubectl apply -f k8s/namespace.yaml
-
-# 5. secret 등록
-bash k8s/postgres/create-secret.sh dev
-# 안되면
-"C:\Program Files\Git\bin\bash.exe" "k8s/postgres/create-secret.sh" "dev"
-
-# 6. PostgreSQL 배포
-kubectl apply -f k8s/postgres/
-
-# 7. Redis 배포
-kubectl apply -f k8s/redis/
+# .env 열어서 값 채우기
 ```
 
-### 배포 확인
+### 배포
 
+**Windows (PowerShell)**
+```powershell
+.\deploy-local.ps1
+```
+
+**Mac / Linux**
 ```bash
-# Pod 상태 확인
-kubectl get pods -n dev
-
-# 로그 확인
-kubectl logs -n dev deployment/postgres
-
-# DB 접속
-kubectl exec -it -n dev deployment/postgres -- psql -U todayi -d todayi
-
-# vector extension 확인
-SELECT * FROM pg_extension WHERE extname = 'vector';
+bash deploy-local.sh
 ```
 
-### 로컬에서 DB 직접 접속하려면 (DBeaver 등)
+접속: http://localhost
 
-```bash
-kubectl port-forward -n dev svc/postgres-svc 5432:5432
-# 이후 localhost:5432로 접속 가능
-```
+---
 
 ## 디렉토리 구조
 
 ```
-today-i/
+today-me/
+├── backend/                        # FastAPI
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core/                   # 설정, JWT, DB, Redis
+│   │   ├── models/                 # SQLAlchemy 모델
+│   │   ├── routers/                # API 라우터
+│   │   └── services/               # 비즈니스 로직
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/                       # React + Vite + Tailwind
+│   ├── src/
+│   │   ├── hooks/                  # useAuth
+│   │   ├── lib/                    # api fetch 유틸
+│   │   └── pages/                  # Login, Callback, Home
+│   ├── Dockerfile
+│   └── nginx.conf
 ├── k8s/
 │   ├── namespace.yaml
-│   └── postgres/
-│       ├── configmap.yaml     # init SQL
-│       ├── pvc.yaml           # 스토리지
-│       ├── deployment.yaml    # Pod + Service
-│       └── create-secret.sh  # secret 생성 스크립트
-├── .env.example               # 환경변수 템플릿 (git 추적)
-├── .env                       # 실제 환경변수 (git 무시)
+│   ├── ingress.yaml
+│   ├── create-secrets.sh           # Secret 생성 (Mac/Linux)
+│   ├── create-secrets.ps1          # Secret 생성 (Windows)
+│   ├── postgres/                   # ConfigMap, PVC, Deployment
+│   ├── redis/
+│   ├── backend/
+│   └── frontend/
+├── deploy-local.sh                 # 전체 배포 (Mac/Linux)
+├── deploy-local.ps1                # 전체 배포 (Windows)
+├── .env.example
 └── .gitignore
 ```
