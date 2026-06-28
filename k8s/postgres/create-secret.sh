@@ -18,7 +18,7 @@ source .env
 kubectl create secret generic postgres-secret \
   --namespace="$NAMESPACE" \
   --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  --from-literal=DATABASE_URL="postgresql://todayi:${POSTGRES_PASSWORD}@postgres-svc:5432/todayi" \
+  --from-literal=DATABASE_URL="postgresql://todayme:${POSTGRES_PASSWORD}@postgres-svc:5432/todayme" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 echo "postgres-secret 생성 완료 (namespace: $NAMESPACE)"

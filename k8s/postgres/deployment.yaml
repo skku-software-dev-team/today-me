@@ -35,12 +35,12 @@ spec:
               mountPath: /docker-entrypoint-initdb.d
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "todayi"]
+              command: ["pg_isready", "-U", "todayme"]
             initialDelaySeconds: 5
             periodSeconds: 5
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "todayi"]
+              command: ["pg_isready", "-U", "todayme"]
             initialDelaySeconds: 30
             periodSeconds: 10
       volumes:
