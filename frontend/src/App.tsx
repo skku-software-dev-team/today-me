@@ -3,6 +3,8 @@ import { useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import Callback from "./pages/Callback";
 import Home from "./pages/Home";
+import Result from "./pages/Result";
+import History from "./pages/History";
 
 export default function App() {
   const { state, login, logout, onCallback } = useAuth();
@@ -29,11 +31,15 @@ export default function App() {
         <Route path="/callback" element={<Callback onCallback={onCallback} />} />
         <Route
           path="/"
-          element={
-            state === "authenticated"
-              ? <Home onLogout={logout} />
-              : <Navigate to="/login" replace />
-          }
+          element={state === "authenticated" ? <Home onLogout={logout} /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/result"
+          element={state === "authenticated" ? <Result /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/history"
+          element={state === "authenticated" ? <History /> : <Navigate to="/login" replace />}
         />
       </Routes>
     </BrowserRouter>
