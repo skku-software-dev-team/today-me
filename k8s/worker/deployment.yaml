@@ -13,6 +13,13 @@ spec:
       labels:
         app: worker
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: worker
           image: today-me-backend:latest
@@ -21,8 +28,31 @@ spec:
           envFrom:
             - secretRef:
                 name: app-secret
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            exec:
+              command: ["celery", "-A", "app.core.celery.celery_app", "inspect", "ping"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
           livenessProbe:
             exec:
               command: ["celery", "-A", "app.core.celery.celery_app", "inspect", "ping"]
             initialDelaySeconds: 30
             periodSeconds: 30
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,8 +1,10 @@
 import secrets
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.services.auth import (
@@ -10,10 +12,9 @@ from app.services.auth import (
     get_google_auth_url,
     get_or_create_user,
     issue_tokens,
-    rotate_refresh_token,
     revoke_refresh_token,
+    rotate_refresh_token,
 )
-from app.core.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -57,8 +58,10 @@ async def google_callback(
 
     try:
         userinfo = await exchange_google_code(code)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed")
+    except Exception as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed"
+        ) from err
 
     user = await get_or_create_user(db, userinfo)
     access_token, refresh_token = await issue_tokens(user.id, redis)
