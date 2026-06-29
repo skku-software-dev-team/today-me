@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.jwt import create_access_token, create_refresh_token
-from app.models.user import User, OAuthAccount
+from app.models.user import OAuthAccount, User
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -32,13 +32,16 @@ def get_google_auth_url(state: str) -> str:
 
 async def exchange_google_code(code: str) -> dict:
     async with httpx.AsyncClient() as client:
-        resp = await client.post(GOOGLE_TOKEN_URL, data={
-            "code": code,
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
-            "redirect_uri": settings.google_redirect_uri,
-            "grant_type": "authorization_code",
-        })
+        resp = await client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
         resp.raise_for_status()
         tokens = resp.json()
 
@@ -97,12 +100,15 @@ async def issue_tokens(user_id: uuid.UUID, redis) -> tuple[str, str]:
 
 
 async def rotate_refresh_token(old_refresh_token: str, redis) -> tuple[str, str]:
-    from app.core.jwt import decode_token
     from fastapi import HTTPException, status
+
+    from app.core.jwt import decode_token
 
     user_id = await redis.get(f"refresh:{old_refresh_token}")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     decode_token(old_refresh_token)
 
