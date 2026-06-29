@@ -1,0 +1,22 @@
+# CVEs with no available fix as of 2026-06-30
+# Re-evaluate when upstream releases patches
+
+# ecdsa: Minerva timing attack — no fix released (python-jose transitive dep)
+CVE-2024-23342
+
+# OS base image (python:3.12-slim) — no patch available upstream
+# ncurses buffer overflow
+CVE-2025-69720
+# SQLite memory corruption
+CVE-2026-11822
+CVE-2026-11824
+# perl CVEs — fix_deferred or affected, no fixed version
+CVE-2026-42496
+CVE-2026-8376
+CVE-2026-42497
+CVE-2026-48962
+CVE-2026-9538
+
+# starlette 1.x series CVEs — starlette is still on 0.x; FastAPI not yet compatible
+CVE-2026-48818
+CVE-2026-54283
