@@ -81,7 +81,7 @@ spec:
         - port: 5432
   egress: []
 ---
-# redis: backend에서만 인바운드 허용
+# redis: backend + worker에서만 인바운드 허용
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -99,6 +99,39 @@ spec:
         - podSelector:
             matchLabels:
               app: backend
+        - podSelector:
+            matchLabels:
+              app: worker
       ports:
         - port: 6379
   egress: []
+---
+# worker: redis/postgres로 이그레스, 외부 API 허용
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: worker-policy
+  namespace: dev
+spec:
+  podSelector:
+    matchLabels:
+      app: worker
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - port: 5432
+    - ports:
+        - port: 443
