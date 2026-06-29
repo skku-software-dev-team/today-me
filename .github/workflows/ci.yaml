@@ -70,12 +70,11 @@ jobs:
       - run: pip install checkov==3.2.332
       - run: >
           checkov -d k8s/ --framework kubernetes --quiet
-          --skip-check CKV_K8S_14,CKV_K8S_15,CKV_K8S_43,CKV_K8S_35,CKV_K8S_22
+          --skip-check CKV_K8S_14,CKV_K8S_15,CKV_K8S_43,CKV_K8S_35
         # CKV_K8S_14: image:latest — dev 로컬 빌드 이미지라 태그 고정 불가
         # CKV_K8S_15: imagePullPolicy:Always — dev는 Never 사용
         # CKV_K8S_43: image digest — 로컬 이미지는 digest 없음
         # CKV_K8S_35: secrets as files — envFrom secretRef는 현재 구조상 허용
-        # CKV_K8S_22: readOnlyRootFilesystem — postgres는 데이터 파일 쓰기 필요
       - run: checkov -d backend/ --framework dockerfile --quiet
       - run: checkov -d frontend/ --framework dockerfile --quiet
 

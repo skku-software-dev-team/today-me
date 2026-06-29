@@ -38,7 +38,7 @@ spec:
                   key: POSTGRES_PASSWORD
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false  # postgres는 데이터 디렉토리에 쓰기 필요
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           resources:
@@ -55,6 +55,8 @@ spec:
               mountPath: /docker-entrypoint-initdb.d
             - name: tmp
               mountPath: /tmp
+            - name: run
+              mountPath: /var/run/postgresql
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "todayme"]
@@ -73,6 +75,8 @@ spec:
           configMap:
             name: postgres-init
         - name: tmp
+          emptyDir: {}
+        - name: run
           emptyDir: {}
 ---
 apiVersion: v1
