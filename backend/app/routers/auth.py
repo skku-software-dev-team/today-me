@@ -18,7 +18,7 @@ from app.services.auth import (
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-COOKIE_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
+COOKIE_MAX_AGE = 60 * 60 * 24 * settings.refresh_token_expire_days
 
 
 def _set_refresh_cookie(response: Response, token: str):
@@ -26,16 +26,20 @@ def _set_refresh_cookie(response: Response, token: str):
         key="refresh_token",
         value=token,
         httponly=True,
-        secure=False,  # prod에서는 True로
+        secure=settings.cookie_secure,
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
         path="/api/auth",
     )
 
 
+STATE_TTL = 60 * 10  # 10분 안에 로그인 완료해야 함
+
+
 @router.get("/google")
-async def google_login():
+async def google_login(redis=Depends(get_redis)):
     state = secrets.token_urlsafe(16)
+    await redis.setex(f"oauth_state:{state}", STATE_TTL, "1")
     url = get_google_auth_url(state)
     return RedirectResponse(url)
 
@@ -43,9 +47,15 @@ async def google_login():
 @router.get("/google/callback")
 async def google_callback(
     code: str,
+    state: str,
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
+    # state 검증 — Redis에 없으면 위조된 요청
+    valid = await redis.getdel(f"oauth_state:{state}")
+    if not valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid state")
+
     try:
         userinfo = await exchange_google_code(code)
     except Exception as err:
