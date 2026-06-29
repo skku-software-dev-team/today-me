@@ -1,22 +1,16 @@
-# CVEs with no available fix as of 2026-06-30
-# Re-evaluate when upstream releases patches
+# OS base image (python:3.12-slim, Debian 13) CVEs.
+# Debian 보안팀이 아직 패치를 릴리스하지 않아 apt upgrade로 해결 불가.
+# 애플리케이션 코드 경로에서 직접 사용하지 않으며, 패치 릴리스 시 base 이미지 재빌드로 자동 해결됨.
+# Re-evaluate: 2026-09-30 (또는 Debian 패치 공지 시)
 
-# ecdsa: Minerva timing attack — no fix released (python-jose transitive dep)
-CVE-2024-23342
-
-# OS base image (python:3.12-slim) — no patch available upstream
-# ncurses buffer overflow
+# ncurses buffer overflow (libncursesw6, libtinfo6, ncurses-base, ncurses-bin)
 CVE-2025-69720
-# SQLite memory corruption
+# SQLite memory corruption / heap overflow (libsqlite3-0)
 CVE-2026-11822
 CVE-2026-11824
-# perl CVEs — fix_deferred or affected, no fixed version
+# perl (perl-base) — fix_deferred / affected, no fixed version
 CVE-2026-42496
 CVE-2026-8376
 CVE-2026-42497
 CVE-2026-48962
 CVE-2026-9538
-
-# starlette 1.x series CVEs — starlette is still on 0.x; FastAPI not yet compatible
-CVE-2026-48818
-CVE-2026-54283

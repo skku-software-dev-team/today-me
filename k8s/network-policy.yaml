@@ -13,7 +13,7 @@ spec:
     - Egress
   ingress:
     - ports:
-        - port: 80
+        - port: 8080
   egress:
     - to:
         - podSelector:
