@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
+    # Cookie
+    cookie_secure: bool = False  # prod에서는 True (HTTPS 필수)
+
     # CORS
     frontend_url: str = "http://localhost:5173"
 
