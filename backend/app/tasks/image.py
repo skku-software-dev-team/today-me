@@ -1,5 +1,5 @@
-import asyncio
 import logging
+
 from app.core.celery import celery_app
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,7 @@ def _generate_image(mood: str, weather: str, energy: int) -> str:
 )
 def generate_moodboard(self, report_id: str, mood: str, weather: str, energy: int):
     from sqlalchemy import create_engine, text
+
     from app.core.config import settings
 
     logger.info(f"[moodboard] 시작 report_id={report_id}")
@@ -29,7 +30,6 @@ def generate_moodboard(self, report_id: str, mood: str, weather: str, energy: in
     try:
         image_url = _generate_image(mood, weather, energy)
 
-        # asyncpg는 sync context에서 못 쓰니까 psycopg2 URL로 변환
         sync_url = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
         engine = create_engine(sync_url)
         with engine.connect() as conn:
@@ -44,4 +44,4 @@ def generate_moodboard(self, report_id: str, mood: str, weather: str, energy: in
 
     except Exception as exc:
         logger.error(f"[moodboard] 실패 report_id={report_id} error={exc}")
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc) from exc
