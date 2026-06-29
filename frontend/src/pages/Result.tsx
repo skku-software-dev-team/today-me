@@ -1,7 +1,14 @@
 import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { submitFeedback } from "../lib/api";
-import type { CurateResponse, AgentKey, MusicPick, PlacePick, FoodPick, StylePick } from "../types";
+import type {
+  CurateResponse,
+  AgentKey,
+  MusicPick,
+  PlacePick,
+  FoodPick,
+  StylePick,
+} from "../types";
 
 interface FeedbackBtnsProps {
   feedbackKey: string;
@@ -38,7 +45,9 @@ function FeedbackBtns({ feedbackKey, ratings, onRate }: FeedbackBtnsProps) {
         <button
           onClick={() => handleScore(1)}
           className={`px-3 py-1 rounded-full text-xs transition-colors ${
-            rating === 1 ? "bg-emerald-100 text-emerald-700" : "text-stone-400 hover:bg-stone-100"
+            rating === 1
+              ? "bg-emerald-100 text-emerald-700"
+              : "text-stone-400 hover:bg-stone-100"
           }`}
         >
           👍
@@ -46,7 +55,9 @@ function FeedbackBtns({ feedbackKey, ratings, onRate }: FeedbackBtnsProps) {
         <button
           onClick={() => handleScore(-1)}
           className={`px-3 py-1 rounded-full text-xs transition-colors ${
-            rating === -1 ? "bg-red-100 text-red-600" : "text-stone-400 hover:bg-stone-100"
+            rating === -1
+              ? "bg-red-100 text-red-600"
+              : "text-stone-400 hover:bg-stone-100"
           }`}
         >
           👎
@@ -59,7 +70,10 @@ function FeedbackBtns({ feedbackKey, ratings, onRate }: FeedbackBtnsProps) {
             ref={inputRef}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleSend(); if (e.key === "Escape") handleSkip(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSend();
+              if (e.key === "Escape") handleSkip();
+            }}
             placeholder="어떤 점이 좋았나요? (선택)"
             className="flex-1 text-xs rounded-lg border border-stone-200 px-3 py-1.5 text-stone-700 placeholder-stone-300 focus:outline-none focus:ring-1 focus:ring-stone-300"
           />
@@ -103,10 +117,21 @@ export default function Result() {
     );
   }
 
-  function rate(agent: AgentKey, index: number, score: 1 | -1, comment?: string) {
+  function rate(
+    agent: AgentKey,
+    index: number,
+    score: 1 | -1,
+    comment?: string,
+  ) {
     const key = `${agent}-${index}`;
     setRatings((prev) => ({ ...prev, [key]: score }));
-    submitFeedback({ report_id: result!.report_id, agent, pick_index: index, score, comment }).catch(() => {});
+    submitFeedback({
+      report_id: result!.report_id,
+      agent,
+      pick_index: index,
+      score,
+      comment,
+    }).catch(() => {});
   }
 
   return (
@@ -137,7 +162,6 @@ export default function Result() {
         )}
 
         <div className="px-6 pt-6 flex flex-col gap-8">
-
           {/* Music */}
           <section>
             <h2 className="text-xs font-semibold uppercase tracking-widest text-stone-400 mb-3">
@@ -145,7 +169,10 @@ export default function Result() {
             </h2>
             <div className="flex flex-col gap-3">
               {result.music_picks.map((p: MusicPick, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-stone-100">
+                <div
+                  key={i}
+                  className="bg-white rounded-xl p-4 border border-stone-100"
+                >
                   <a
                     href={p.youtube_url}
                     target="_blank"
@@ -157,13 +184,17 @@ export default function Result() {
                       <p className="text-sm font-medium text-stone-800 group-hover:underline truncate">
                         {p.title}
                       </p>
-                      <p className="text-xs text-stone-400 mt-0.5">{p.artist}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {p.artist}
+                      </p>
                     </div>
                   </a>
                   <FeedbackBtns
                     feedbackKey={`music-${i}`}
                     ratings={ratings}
-                    onRate={(score, comment) => rate("music", i, score, comment)}
+                    onRate={(score, comment) =>
+                      rate("music", i, score, comment)
+                    }
                   />
                 </div>
               ))}
@@ -177,18 +208,30 @@ export default function Result() {
             </h2>
             <div className="flex flex-col gap-3">
               {result.place_picks.map((p: PlacePick, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-stone-100">
-                  <a href={p.maps_url} target="_blank" rel="noreferrer" className="group">
+                <div
+                  key={i}
+                  className="bg-white rounded-xl p-4 border border-stone-100"
+                >
+                  <a
+                    href={p.maps_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group"
+                  >
                     <p className="text-sm font-medium text-stone-800 group-hover:underline">
                       📍 {p.name}
                     </p>
                     <p className="text-xs text-stone-400 mt-0.5">{p.address}</p>
                   </a>
-                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">{p.reason}</p>
+                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                    {p.reason}
+                  </p>
                   <FeedbackBtns
                     feedbackKey={`place-${i}`}
                     ratings={ratings}
-                    onRate={(score, comment) => rate("place", i, score, comment)}
+                    onRate={(score, comment) =>
+                      rate("place", i, score, comment)
+                    }
                   />
                 </div>
               ))}
@@ -202,12 +245,19 @@ export default function Result() {
             </h2>
             <div className="flex flex-col gap-3">
               {result.food_picks.map((p: FoodPick, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-stone-100">
-                  <p className="text-sm font-medium text-stone-800">🍽 {p.name}</p>
+                <div
+                  key={i}
+                  className="bg-white rounded-xl p-4 border border-stone-100"
+                >
+                  <p className="text-sm font-medium text-stone-800">
+                    🍽 {p.name}
+                  </p>
                   <p className="text-xs text-stone-400 mt-0.5">
                     {p.cuisine} · {p.address}
                   </p>
-                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">{p.reason}</p>
+                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                    {p.reason}
+                  </p>
                   <FeedbackBtns
                     feedbackKey={`food-${i}`}
                     ratings={ratings}
@@ -225,19 +275,27 @@ export default function Result() {
             </h2>
             <div className="flex flex-col gap-3">
               {result.style_picks.map((p: StylePick, i) => (
-                <div key={i} className="bg-white rounded-xl p-4 border border-stone-100">
-                  <p className="text-sm font-medium text-stone-800">👗 {p.description}</p>
-                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">{p.reason}</p>
+                <div
+                  key={i}
+                  className="bg-white rounded-xl p-4 border border-stone-100"
+                >
+                  <p className="text-sm font-medium text-stone-800">
+                    👗 {p.description}
+                  </p>
+                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                    {p.reason}
+                  </p>
                   <FeedbackBtns
                     feedbackKey={`style-${i}`}
                     ratings={ratings}
-                    onRate={(score, comment) => rate("style", i, score, comment)}
+                    onRate={(score, comment) =>
+                      rate("style", i, score, comment)
+                    }
                   />
                 </div>
               ))}
             </div>
           </section>
-
         </div>
       </main>
     </div>

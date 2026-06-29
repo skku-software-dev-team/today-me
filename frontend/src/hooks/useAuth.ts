@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { refreshAccessToken, setAccessToken, clearAccessToken } from "../lib/api";
+import {
+  refreshAccessToken,
+  setAccessToken,
+  clearAccessToken,
+} from "../lib/api";
 
 export type AuthState = "loading" | "authenticated" | "unauthenticated";
 

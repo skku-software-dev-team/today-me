@@ -23,23 +23,46 @@ export default function App() {
         <Route
           path="/login"
           element={
-            state === "authenticated"
-              ? <Navigate to="/" replace />
-              : <Login onLogin={login} />
+            state === "authenticated" ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Login onLogin={login} />
+            )
           }
         />
-        <Route path="/callback" element={<Callback onCallback={onCallback} />} />
+        <Route
+          path="/callback"
+          element={<Callback onCallback={onCallback} />}
+        />
         <Route
           path="/"
-          element={state === "authenticated" ? <Home onLogout={logout} /> : <Navigate to="/login" replace />}
+          element={
+            state === "authenticated" ? (
+              <Home onLogout={logout} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
         <Route
           path="/result"
-          element={state === "authenticated" ? <Result /> : <Navigate to="/login" replace />}
+          element={
+            state === "authenticated" ? (
+              <Result />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
         <Route
           path="/history"
-          element={state === "authenticated" ? <History /> : <Navigate to="/login" replace />}
+          element={
+            state === "authenticated" ? (
+              <History />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
       </Routes>
     </BrowserRouter>
