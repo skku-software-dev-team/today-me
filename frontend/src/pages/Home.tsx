@@ -24,9 +24,15 @@ export default function Home({ onLogout }: Props) {
   const [mood, setMood] = useState("");
   const [energy, setEnergy] = useState(3);
   const [locState, setLocState] = useState<LocState>("idle");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null,
+  );
   const [locationName, setLocationName] = useState<string | null>(null);
-  const [weatherInfo, setWeatherInfo] = useState<{ emoji: string; label: string; temp: number } | null>(null);
+  const [weatherInfo, setWeatherInfo] = useState<{
+    emoji: string;
+    label: string;
+    temp: number;
+  } | null>(null);
   const [locationText, setLocationText] = useState("");
   const [locGeocoding, setLocGeocoding] = useState(false);
   const [locTextError, setLocTextError] = useState<string | null>(null);
@@ -47,7 +53,7 @@ export default function Home({ onLogout }: Props) {
         setLocationName(name);
         setWeatherInfo(weather);
       },
-      () => setLocState("text")
+      () => setLocState("text"),
     );
   }
 
@@ -101,7 +107,11 @@ export default function Home({ onLogout }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const result = await curate({ mood, energy, location: location ?? SEOUL_DEFAULT });
+      const result = await curate({
+        mood,
+        energy,
+        location: location ?? SEOUL_DEFAULT,
+      });
       navigate("/result", { state: result });
     } catch {
       setError("오류가 발생했어요. 잠시 후 다시 시도해주세요.");
@@ -152,7 +162,9 @@ export default function Home({ onLogout }: Props) {
 
         {/* Energy */}
         <section>
-          <label className="block text-sm font-medium text-stone-700 mb-3">에너지 레벨</label>
+          <label className="block text-sm font-medium text-stone-700 mb-3">
+            에너지 레벨
+          </label>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((e) => (
               <button
@@ -168,7 +180,9 @@ export default function Home({ onLogout }: Props) {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-stone-400 text-center">{ENERGY_LABELS[energy]}</p>
+          <p className="mt-2 text-xs text-stone-400 text-center">
+            {ENERGY_LABELS[energy]}
+          </p>
         </section>
 
         {/* Location */}
@@ -220,7 +234,8 @@ export default function Home({ onLogout }: Props) {
               </div>
               {weatherInfo && (
                 <p className="text-sm text-stone-500 px-1">
-                  {weatherInfo.emoji} 지금 {weatherInfo.label}, {weatherInfo.temp}°C예요!
+                  {weatherInfo.emoji} 지금 {weatherInfo.label},{" "}
+                  {weatherInfo.temp}°C예요!
                 </p>
               )}
             </div>
@@ -231,8 +246,13 @@ export default function Home({ onLogout }: Props) {
               <div className="flex gap-2">
                 <input
                   value={locationText}
-                  onChange={(e) => { setLocationText(e.target.value); setLocTextError(null); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") confirmTextLocation(); }}
+                  onChange={(e) => {
+                    setLocationText(e.target.value);
+                    setLocTextError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmTextLocation();
+                  }}
                   placeholder="예) 강남구, 홍대, 마포구"
                   disabled={locGeocoding}
                   className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-800 placeholder-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-300 disabled:opacity-50"
@@ -242,18 +262,25 @@ export default function Home({ onLogout }: Props) {
                   disabled={!locationText.trim() || locGeocoding}
                   className="px-4 rounded-xl bg-stone-800 text-white text-sm font-medium disabled:opacity-40 flex items-center gap-1.5 flex-shrink-0"
                 >
-                  {locGeocoding
-                    ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                    : "확인"
-                  }
+                  {locGeocoding ? (
+                    <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "확인"
+                  )}
                 </button>
               </div>
               <div className="flex items-center justify-between px-1">
-                {locTextError
-                  ? <p className="text-xs text-red-500">{locTextError}</p>
-                  : <p className="text-xs text-stone-400">GPS 권한이 없어 직접 입력해주세요.</p>
-                }
-                <button onClick={resetLocation} className="text-xs text-stone-400 underline underline-offset-2">
+                {locTextError ? (
+                  <p className="text-xs text-red-500">{locTextError}</p>
+                ) : (
+                  <p className="text-xs text-stone-400">
+                    GPS 권한이 없어 직접 입력해주세요.
+                  </p>
+                )}
+                <button
+                  onClick={resetLocation}
+                  className="text-xs text-stone-400 underline underline-offset-2"
+                >
                   취소
                 </button>
               </div>

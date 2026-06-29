@@ -6,7 +6,8 @@ import type { HistoryReport } from "../types";
 function EnergyDots({ energy }: { energy: number }) {
   return (
     <span className="text-stone-300 tracking-tight text-xs select-none">
-      {"●".repeat(energy)}{"○".repeat(5 - energy)}
+      {"●".repeat(energy)}
+      {"○".repeat(5 - energy)}
     </span>
   );
 }
@@ -41,7 +42,9 @@ export default function History() {
         >
           ← 돌아가기
         </button>
-        <h2 className="flex-1 text-center text-sm font-medium text-stone-700">나의 히스토리</h2>
+        <h2 className="flex-1 text-center text-sm font-medium text-stone-700">
+          나의 히스토리
+        </h2>
         <div className="w-16" />
       </header>
 
@@ -53,7 +56,9 @@ export default function History() {
         )}
 
         {error && (
-          <p className="text-center text-stone-400 text-sm py-16">불러오는 데 실패했어요.</p>
+          <p className="text-center text-stone-400 text-sm py-16">
+            불러오는 데 실패했어요.
+          </p>
         )}
 
         {!loading && !error && reports.length === 0 && (
@@ -85,12 +90,16 @@ export default function History() {
                   <div className="w-20 h-20 bg-stone-100 flex-shrink-0" />
                 )}
                 <div className="px-4 py-3 flex flex-col justify-between min-w-0 flex-1">
-                  <p className="text-sm text-stone-800 line-clamp-2 leading-snug">{r.mood}</p>
+                  <p className="text-sm text-stone-800 line-clamp-2 leading-snug">
+                    {r.mood}
+                  </p>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className="text-xs text-stone-400">{r.weather}</span>
                     <EnergyDots energy={r.energy} />
                   </div>
-                  <p className="text-xs text-stone-300 mt-1">{formatDate(r.created_at)}</p>
+                  <p className="text-xs text-stone-300 mt-1">
+                    {formatDate(r.created_at)}
+                  </p>
                 </div>
               </div>
             ))}
