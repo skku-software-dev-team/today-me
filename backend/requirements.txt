@@ -10,7 +10,14 @@ asyncpg==0.29.0
 sqlalchemy[asyncio]==2.0.36
 alembic==1.13.3
 python-dotenv==1.0.1
-pydantic-settings==2.5.2
-pydantic[email]==2.9.2
+pydantic-settings==2.14.2
+pydantic[email]==2.13.4
 celery==5.4.0
 psycopg2-binary==2.9.9
+
+# Agent layer
+langgraph==1.2.6
+langsmith==0.9.3
+openai-agents==0.7.0
+fastmcp==2.1.2
+google-api-python-client==2.198.0

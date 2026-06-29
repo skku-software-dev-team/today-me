@@ -25,7 +25,7 @@ spec:
           image: redis:7-alpine
           ports:
             - containerPort: 6379
-          args: ["--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+          args: ["--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

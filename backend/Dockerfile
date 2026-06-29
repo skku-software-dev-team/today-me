@@ -1,12 +1,11 @@
 FROM python:3.12-slim
 
+COPY --from=ghcr.io/astral-sh/uv:0.7.12 /uv /usr/local/bin/uv
+
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip uninstall -y ecdsa
-# ecdsa: python-jose[cryptography] 백엔드는 ecdsa를 런타임에 사용하지 않음.
-# CVE-2024-23342(Minerva)는 upstream 패치 없음 → 미사용 패키지를 이미지에서 제거
+COPY requirements.lock .
+RUN uv pip install --system --no-cache -r requirements.lock
 
 COPY app/ ./app/
 
