@@ -7,9 +7,10 @@ from app.core.database import get_db
 from app.core.redis import get_redis
 from app.services.auth import (
     exchange_google_code,
+    exchange_one_time_code,
     get_google_auth_url,
     get_or_create_user,
-    issue_tokens,
+    issue_one_time_code,
     rotate_refresh_token,
     revoke_refresh_token,
 )
@@ -57,15 +58,24 @@ async def google_callback(
 
     try:
         userinfo = await exchange_google_code(code)
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed")
+    except Exception as err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed") from err
 
     user = await get_or_create_user(db, userinfo)
-    access_token, refresh_token = await issue_tokens(user.id, redis)
+    code = await issue_one_time_code(user.id, redis)
 
-    response = RedirectResponse(url=f"{settings.frontend_url}/callback?access_token={access_token}")
+    return RedirectResponse(url=f"{settings.frontend_url}/callback?code={code}")
+
+
+@router.post("/token")
+async def token(
+    code: str,
+    response: Response,
+    redis=Depends(get_redis),
+):
+    access_token, refresh_token = await exchange_one_time_code(code, redis)
     _set_refresh_cookie(response, refresh_token)
-    return response
+    return {"access_token": access_token}
 
 
 @router.post("/refresh")
