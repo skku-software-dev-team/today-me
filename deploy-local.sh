@@ -22,8 +22,9 @@ kubectl apply -f k8s/postgres/pvc.yaml
 kubectl apply -f k8s/postgres/deployment.yaml
 kubectl apply -f k8s/redis/deployment.yaml
 
-echo "==> backend / frontend 배포"
+echo "==> backend / worker / frontend 배포"
 kubectl apply -f k8s/backend/deployment.yaml
+kubectl apply -f k8s/worker/deployment.yaml
 kubectl apply -f k8s/frontend/deployment.yaml
 
 echo "==> ingress 적용"
