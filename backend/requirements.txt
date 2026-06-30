@@ -20,3 +20,6 @@ langgraph==1.2.6
 langsmith==0.9.3
 openai-agents==0.7.0
 google-api-python-client==2.198.0
+
+# Memory layer
+pgvector==0.3.6

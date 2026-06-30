@@ -15,13 +15,21 @@ from app.agents.music.agent import music_agent_node
 from app.agents.place.agent import place_agent_node
 from app.agents.state import DailyState
 from app.agents.style.agent import style_agent_node
+from app.services.memory import get_rag_context, save_report
 
-# ── stub 노드들 ────────────────────────────────────────────────────
+# ── 노드 구현 ──────────────────────────────────────────────────────
 
 
 async def rag_node(state: DailyState) -> dict:
-    """pgvector 취향 메모리 조회 — W5에서 실구현."""
-    return {"rag_context": ""}
+    """pgvector 취향 메모리 조회 → rag_context 주입."""
+    context = await get_rag_context(
+        user_id=state["user_id"],
+        mood=state["mood"],
+        weather=state.get("weather", ""),
+        energy=state["energy"],
+        district=state.get("location", {}).get("district"),
+    )
+    return {"rag_context": context}
 
 
 async def supervisor_node(state: DailyState) -> dict:
@@ -49,8 +57,9 @@ async def moodboard_node(state: DailyState) -> dict:
 
 
 async def save_node(state: DailyState) -> dict:
-    """DailyState를 PostgreSQL에 저장 + pgvector 임베딩 — W5에서 실구현."""
-    return {}
+    """DailyState를 PostgreSQL에 저장하고 pgvector 임베딩 생성."""
+    report = await save_report(state)
+    return {"report_id": str(report.id)}
 
 
 # ── 그래프 조립 ────────────────────────────────────────────────────
