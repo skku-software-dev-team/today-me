@@ -79,10 +79,10 @@ async def music_agent_node(state: DailyState) -> dict:
         params={
             "command": _MCP_CMD[0],
             "args": _MCP_CMD[1:],
-            # MCP stdio는 기본적으로 부모 env를 상속하지 않으므로 명시 전달
             "env": {**os.environ, "YOUTUBE_API_KEY": os.environ.get("YOUTUBE_API_KEY", "")},
         },
         cache_tools_list=True,
+        client_session_timeout_seconds=30,
     ) as mcp_server:
         agent = Agent(
             name="music-curator",

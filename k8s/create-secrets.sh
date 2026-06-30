@@ -31,6 +31,7 @@ kubectl create secret generic app-secret \
   --from-literal=FRONTEND_URL="${FRONTEND_URL:-http://localhost}" \
   --from-literal=OPENAI_API_KEY="$OPENAI_API_KEY" \
   --from-literal=YOUTUBE_API_KEY="$YOUTUBE_API_KEY" \
+  --from-literal=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY}" \
   --from-literal=LANGSMITH_API_KEY="$LANGSMITH_API_KEY" \
   --from-literal=LANGSMITH_TRACING="${LANGSMITH_TRACING:-false}" \
   --from-literal=LANGSMITH_PROJECT="${LANGSMITH_PROJECT:-today-me}" \

@@ -19,5 +19,4 @@ psycopg2-binary==2.9.9
 langgraph==1.2.6
 langsmith==0.9.3
 openai-agents==0.7.0
-fastmcp==3.2.0
 google-api-python-client==2.198.0

@@ -8,7 +8,7 @@ import os
 import re
 
 import httpx
-from fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("youtube-music")
 
@@ -92,4 +92,4 @@ async def get_video_details(video_id: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="stdio")

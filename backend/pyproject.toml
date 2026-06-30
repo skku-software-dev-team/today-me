@@ -11,6 +11,7 @@ select = [
     "S",   # flake8-bandit (보안)
 ]
 ignore = [
+    "E501", # line too long — 포매터(ruff-format)에 길이 위임
     "S101", # assert 허용 (테스트용)
     "S105", # hardcoded password 오탐 방지
     "B008", # FastAPI Depends() 패턴 허용
