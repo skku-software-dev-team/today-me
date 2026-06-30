@@ -54,10 +54,11 @@ export async function apiFetch(
 
 export async function curate(payload: {
   mood: string;
+  weather: string;
   energy: number;
   location: { lat: number; lng: number };
 }): Promise<CurateResponse> {
-  const res = await apiFetch("/v1/curate", {
+  const res = await apiFetch("/api/v1/curate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -73,7 +74,7 @@ export async function submitFeedback(payload: {
   score: 1 | -1;
   comment?: string;
 }): Promise<void> {
-  await apiFetch("/v1/feedback", {
+  await apiFetch("/api/v1/feedback", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -84,7 +85,7 @@ export async function getHistory(
   limit = 20,
   offset = 0,
 ): Promise<HistoryResponse> {
-  const res = await apiFetch(`/v1/history?limit=${limit}&offset=${offset}`);
+  const res = await apiFetch(`/api/v1/history?limit=${limit}&offset=${offset}`);
   if (!res.ok) throw new Error("history failed");
   return res.json();
 }

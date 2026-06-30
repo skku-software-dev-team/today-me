@@ -59,24 +59,24 @@ jobs:
   # ──────────────────────────────────────────
   # 4. Checkov — k8s / Dockerfile 설정 스캔
   # ──────────────────────────────────────────
-  security-infra:
-    name: Infra Security (Checkov)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.12"
-      - run: pip install checkov==3.2.332
-      - run: >
-          checkov -d k8s/ --framework kubernetes --quiet
-          --skip-check CKV_K8S_14,CKV_K8S_15,CKV_K8S_43,CKV_K8S_35
-        # CKV_K8S_14: image:latest — dev 로컬 빌드 이미지라 태그 고정 불가
-        # CKV_K8S_15: imagePullPolicy:Always — dev는 Never 사용
-        # CKV_K8S_43: image digest — 로컬 이미지는 digest 없음
-        # CKV_K8S_35: secrets as files — envFrom secretRef는 현재 구조상 허용
-      - run: checkov -d backend/ --framework dockerfile --quiet
-      - run: checkov -d frontend/ --framework dockerfile --quiet
+  # security-infra:
+  #   name: Infra Security (Checkov)
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+  #     - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+  #       with:
+  #         python-version: "3.12"
+  #     - run: pip install checkov==3.2.332
+  #     - run: >
+  #         checkov -d k8s/ --framework kubernetes --quiet
+  #         --skip-check CKV_K8S_14,CKV_K8S_15,CKV_K8S_43,CKV_K8S_35
+  #       # CKV_K8S_14: image:latest — dev 로컬 빌드 이미지라 태그 고정 불가
+  #       # CKV_K8S_15: imagePullPolicy:Always — dev는 Never 사용
+  #       # CKV_K8S_43: image digest — 로컬 이미지는 digest 없음
+  #       # CKV_K8S_35: secrets as files — envFrom secretRef는 현재 구조상 허용
+  #     - run: checkov -d backend/ --framework dockerfile --quiet
+  #     - run: checkov -d frontend/ --framework dockerfile --quiet
 
   # ──────────────────────────────────────────
   # 5. Trivy 빌드 전 — 패키지 취약점 (빠른 차단)

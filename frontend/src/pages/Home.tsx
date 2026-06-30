@@ -107,10 +107,15 @@ export default function Home({ onLogout }: Props) {
     setSubmitting(true);
     setError(null);
     try {
+      const finalLocation = location ?? SEOUL_DEFAULT;
+      const weather =
+        weatherInfo ??
+        (await fetchWeather(finalLocation.lat, finalLocation.lng));
       const result = await curate({
         mood,
+        weather: weather?.label ?? "",
         energy,
-        location: location ?? SEOUL_DEFAULT,
+        location: finalLocation,
       });
       navigate("/result", { state: result });
     } catch {
