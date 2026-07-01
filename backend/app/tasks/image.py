@@ -1,17 +1,27 @@
 import logging
+import os
 
+from openai import OpenAI
+
+from app.agents.moodboard.agent import build_gpt_image_prompt
 from app.core.celery import celery_app
 
 logger = logging.getLogger(__name__)
 
 
 def _generate_image(mood: str, weather: str, energy: int) -> str:
-    """
-    실제 이미지 생성 API 호출 위치.
-    현재는 mock — DALL·E / Stable Diffusion으로 교체 예정.
-    """
-    # TODO: 실제 API 연동
-    return f"https://picsum.photos/seed/{mood[:8]}/800/600"
+    prompt = build_gpt_image_prompt(mood=mood, weather=weather, energy=energy)
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    response = client.images.generate(
+        model="gpt-image-1",
+        prompt=prompt,
+        size="1536x1024",
+        n=1,
+    )
+    item = response.data[0]
+    if getattr(item, "url", None):
+        return item.url
+    return f"data:image/png;base64,{item.b64_json}"
 
 
 @celery_app.task(
