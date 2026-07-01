@@ -22,15 +22,11 @@ def build_gpt_image_prompt(
     mood: str,
     weather: str,
     energy: int,
-    music_picks: list | None = None,
-    place_picks: list | None = None,
-    food_picks: list | None = None,
-    style_picks: list | None = None,
+    music_picks: list = [],
+    place_picks: list = [],
+    food_picks: list = [],
+    style_picks: list = [],
 ) -> str:
-    music_picks = music_picks or []
-    place_picks = place_picks or []
-    food_picks = food_picks or []
-    style_picks = style_picks or []
     energy_word = _ENERGY_WORDS.get(energy, "calm and balanced")
 
     music_desc = (
