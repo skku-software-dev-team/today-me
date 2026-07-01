@@ -31,6 +31,8 @@ class FoodPick(TypedDict):
 class StylePick(TypedDict):
     description: str
     reason: str
+    image_url: str
+    product_url: str
 
 
 class DailyState(TypedDict):
