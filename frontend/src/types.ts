@@ -21,6 +21,8 @@ export interface FoodPick {
 export interface StylePick {
   description: string;
   reason: string;
+  image_url: string;
+  product_url: string;
 }
 
 export interface CurateResponse {
