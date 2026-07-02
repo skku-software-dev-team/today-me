@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.redis import close_redis
-from app.routers import auth, curate, moodboard
+from app.routers import auth, curate, feedback, moodboard
 
 
 @asynccontextmanager
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(moodboard.router)
 app.include_router(curate.router)
+app.include_router(feedback.router)
 
 
 @app.get("/health")

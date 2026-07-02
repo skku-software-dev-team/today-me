@@ -34,6 +34,7 @@ kubectl create secret generic app-secret \
   --from-literal=GOOGLE_MAPS_API_KEY="${GOOGLE_MAPS_API_KEY}" \
   --from-literal=LANGSMITH_API_KEY="$LANGSMITH_API_KEY" \
   --from-literal=LANGSMITH_TRACING="${LANGSMITH_TRACING:-false}" \
+  --from-literal=LANGSMITH_ENDPOINT="${LANGSMITH_ENDPOINT:-https://api.smith.langchain.com}" \
   --from-literal=LANGSMITH_PROJECT="${LANGSMITH_PROJECT:-today-me}" \
   --from-literal=NAVER_CLIENT_ID="${NAVER_CLIENT_ID}" \
   --from-literal=NAVER_CLIENT_SECRET="${NAVER_CLIENT_SECRET}" \

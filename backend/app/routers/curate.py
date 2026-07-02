@@ -13,7 +13,7 @@ from app.core.jwt import get_current_user_id
 from app.core.redis import get_redis
 
 logger = logging.getLogger("curate")
-router = APIRouter(prefix="/api/v1", tags=["curate"])
+router = APIRouter(prefix="/v1", tags=["curate"])
 
 
 class LocationIn(BaseModel):

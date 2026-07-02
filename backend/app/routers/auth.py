@@ -9,14 +9,15 @@ from app.core.database import get_db
 from app.core.redis import get_redis
 from app.services.auth import (
     exchange_google_code,
+    exchange_one_time_code,
     get_google_auth_url,
     get_or_create_user,
-    issue_tokens,
+    issue_one_time_code,
     revoke_refresh_token,
     rotate_refresh_token,
 )
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * settings.refresh_token_expire_days
 
@@ -29,7 +30,7 @@ def _set_refresh_cookie(response: Response, token: str):
         secure=settings.cookie_secure,
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
-        path="/api/auth",
+        path="/auth",
     )
 
 
@@ -51,7 +52,6 @@ async def google_callback(
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
-    # state 검증 — Redis에 없으면 위조된 요청
     valid = await redis.getdel(f"oauth_state:{state}")
     if not valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid state")
@@ -64,11 +64,20 @@ async def google_callback(
         ) from err
 
     user = await get_or_create_user(db, userinfo)
-    access_token, refresh_token = await issue_tokens(user.id, redis)
+    code = await issue_one_time_code(user.id, redis)
 
-    response = RedirectResponse(url=f"{settings.frontend_url}/callback?access_token={access_token}")
+    return RedirectResponse(url=f"{settings.frontend_url}/callback?code={code}")
+
+
+@router.post("/token")
+async def token(
+    code: str,
+    response: Response,
+    redis=Depends(get_redis),
+):
+    access_token, refresh_token = await exchange_one_time_code(code, redis)
     _set_refresh_cookie(response, refresh_token)
-    return response
+    return {"access_token": access_token}
 
 
 @router.post("/refresh")
@@ -93,5 +102,5 @@ async def logout(
 ):
     if refresh_token:
         await revoke_refresh_token(refresh_token, redis)
-    response.delete_cookie("refresh_token", path="/api/auth")
+    response.delete_cookie("refresh_token", path="/auth")
     return {"ok": True}

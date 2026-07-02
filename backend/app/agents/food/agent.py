@@ -88,7 +88,7 @@ async def food_agent_node(state: DailyState) -> dict:
             "env": {**os.environ, "GOOGLE_MAPS_API_KEY": os.environ.get("GOOGLE_MAPS_API_KEY", "")},
         },
         cache_tools_list=True,
-        client_session_timeout_seconds=30,
+        client_session_timeout_seconds=120,
     ) as mcp_server:
         agent = Agent(
             name="food-curator",

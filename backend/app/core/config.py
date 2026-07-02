@@ -28,8 +28,9 @@ class Settings(BaseSettings):
     # Agent layer
     openai_api_key: str = ""
     youtube_api_key: str = ""
-    langsmith_api_key: str = ""
     langsmith_tracing: str = "false"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_api_key: str = ""
     langsmith_project: str = "today-me"
 
     class Config:

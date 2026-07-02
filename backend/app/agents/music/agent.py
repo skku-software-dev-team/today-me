@@ -82,7 +82,7 @@ async def music_agent_node(state: DailyState) -> dict:
             "env": {**os.environ, "YOUTUBE_API_KEY": os.environ.get("YOUTUBE_API_KEY", "")},
         },
         cache_tools_list=True,
-        client_session_timeout_seconds=30,
+        client_session_timeout_seconds=120,
     ) as mcp_server:
         agent = Agent(
             name="music-curator",
