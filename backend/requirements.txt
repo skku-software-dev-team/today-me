@@ -26,3 +26,6 @@ aiohttp==3.12.13
 
 # Memory layer
 pgvector==0.3.6
+
+# Prompt optimization
+dspy-ai==2.6.27

@@ -10,6 +10,7 @@ from agents import Agent, Runner
 from agents.mcp import MCPServerStdio
 from langsmith import traceable
 
+from app.agents.prompt_loader import load_system_prompt
 from app.agents.state import DailyState, PlacePick
 
 logger = logging.getLogger("place_agent")
@@ -90,7 +91,7 @@ async def place_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="place-curator",
-            instructions=_SYSTEM_PROMPT,
+            instructions=await load_system_prompt("place", _SYSTEM_PROMPT),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )
