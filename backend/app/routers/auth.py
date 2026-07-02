@@ -17,7 +17,7 @@ from app.services.auth import (
     rotate_refresh_token,
 )
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * settings.refresh_token_expire_days
 
@@ -30,7 +30,7 @@ def _set_refresh_cookie(response: Response, token: str):
         secure=settings.cookie_secure,
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
-        path="/api/auth",
+        path="/auth",
     )
 
 
@@ -102,5 +102,5 @@ async def logout(
 ):
     if refresh_token:
         await revoke_refresh_token(refresh_token, redis)
-    response.delete_cookie("refresh_token", path="/api/auth")
+    response.delete_cookie("refresh_token", path="/auth")
     return {"ok": True}
