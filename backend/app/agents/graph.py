@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
 from app.agents.food.agent import food_agent_node
+from app.agents.moodboard.agent import moodboard_agent_node
 from app.agents.music.agent import music_agent_node
 from app.agents.place.agent import place_agent_node
 from app.agents.state import DailyState
@@ -44,8 +45,7 @@ def route_to_agents(state: DailyState) -> list[Send]:
 
 
 async def moodboard_node(state: DailyState) -> dict:
-    """무드보드 이미지 생성 — Celery 잡 큐에 위임 (W4에서 연결)."""
-    return {"moodboard_url": None}
+    return await moodboard_agent_node(state)
 
 
 async def save_node(state: DailyState) -> dict:
