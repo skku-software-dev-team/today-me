@@ -3,12 +3,14 @@ import traceback
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.agents.graph import orchestrator
+from app.agents.moodboard.agent import moodboard_agent_node
 from app.agents.state import DailyState
 from app.core.jwt import get_current_user_id
+from app.core.redis import get_redis
 
 logger = logging.getLogger("curate")
 router = APIRouter(prefix="/v1", tags=["curate"])
@@ -26,7 +28,6 @@ class CurateRequest(BaseModel):
     location: LocationIn
 
 
-# 프론트 types.ts 와 1:1 대응
 class MusicPickOut(BaseModel):
     title: str
     artist: str
@@ -64,8 +65,24 @@ class CurateResponse(BaseModel):
     created_at: str
 
 
+async def _generate_moodboard_bg(report_id: str, state: DailyState) -> None:
+    try:
+        result = await moodboard_agent_node(state)
+        url = result.get("moodboard_url")
+        if url:
+            r = await get_redis()
+            await r.set(f"moodboard:{report_id}", url, ex=3600)
+            logger.info("moodboard 저장 완료 report_id=%s", report_id)
+    except Exception:
+        logger.error("moodboard 백그라운드 실패:\n%s", traceback.format_exc())
+
+
 @router.post("/curate", response_model=CurateResponse)
-async def curate(body: CurateRequest, user_id: str = Depends(get_current_user_id)):
+async def curate(
+    body: CurateRequest,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user_id),
+):
     report_id = str(uuid.uuid4())
 
     initial: DailyState = {
@@ -98,12 +115,15 @@ async def curate(body: CurateRequest, user_id: str = Depends(get_current_user_id
         logger.error("curate orchestration failed:\n%s", traceback.format_exc())
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    # 무드보드는 백그라운드에서 생성 → Redis 저장
+    background_tasks.add_task(_generate_moodboard_bg, report_id, result)
+
     return CurateResponse(
         report_id=result.get("report_id") or report_id,
         music_picks=result.get("music_picks", []),
         place_picks=result.get("place_picks", []),
         food_picks=result.get("food_picks", []),
         style_picks=result.get("style_picks", []),
-        moodboard_url=result.get("moodboard_url"),
+        moodboard_url=None,
         created_at=datetime.now(timezone.utc).isoformat(),
     )

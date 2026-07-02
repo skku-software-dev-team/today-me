@@ -67,6 +67,14 @@ export async function curate(payload: {
   return res.json();
 }
 
+export async function getMoodboard(
+  reportId: string,
+): Promise<{ status: string; moodboard_url: string | null }> {
+  const res = await apiFetch(`/api/v1/moodboard/${reportId}`);
+  if (!res.ok) throw new Error("getMoodboard failed");
+  return res.json();
+}
+
 export async function submitFeedback(payload: {
   report_id: string;
   agent: AgentKey;
