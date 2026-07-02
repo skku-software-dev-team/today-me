@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.jwt import get_current_user_id
 from app.services.memory import apply_feedback
 
-router = APIRouter(prefix="/api/v1", tags=["feedback"])
+router = APIRouter(prefix="/v1", tags=["feedback"])
 
 
 class FeedbackRequest(BaseModel):

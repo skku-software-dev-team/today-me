@@ -8,6 +8,8 @@ COPY requirements.lock .
 RUN uv pip install --system --no-cache -r requirements.lock
 
 COPY app/ ./app/
+COPY alembic.ini .
+COPY migrations/ ./migrations/
 
 RUN useradd --no-create-home --uid 10001 appuser
 USER appuser

@@ -23,8 +23,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: frontend
-          image: today-me-frontend:latest
-          imagePullPolicy: Never
+          image: localhost:31500/today-me-frontend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           securityContext:

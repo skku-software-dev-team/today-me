@@ -11,7 +11,7 @@ from app.agents.state import DailyState
 from app.core.jwt import get_current_user_id
 
 logger = logging.getLogger("curate")
-router = APIRouter(prefix="/api/v1", tags=["curate"])
+router = APIRouter(prefix="/v1", tags=["curate"])
 
 
 class LocationIn(BaseModel):

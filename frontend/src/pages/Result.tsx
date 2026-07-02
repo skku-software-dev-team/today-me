@@ -74,7 +74,11 @@ function FeedbackBtns({ feedbackKey, ratings, onRate }: FeedbackBtnsProps) {
               if (e.key === "Enter") handleSend();
               if (e.key === "Escape") handleSkip();
             }}
-            placeholder="어떤 점이 좋았나요? (선택)"
+            placeholder={
+              rating === 1
+                ? "어떤 점이 좋았나요? (선택)"
+                : "어떤 점이 별로였나요? (선택)"
+            }
             className="flex-1 text-xs rounded-lg border border-stone-200 px-3 py-1.5 text-stone-700 placeholder-stone-300 focus:outline-none focus:ring-1 focus:ring-stone-300"
           />
           {comment.trim() && (
