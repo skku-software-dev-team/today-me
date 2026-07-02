@@ -50,6 +50,8 @@ class FoodPickOut(BaseModel):
 class StylePickOut(BaseModel):
     description: str
     reason: str
+    image_url: str = ""
+    product_url: str = ""
 
 
 class CurateResponse(BaseModel):

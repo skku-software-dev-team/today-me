@@ -1,12 +1,14 @@
 import uuid
 from datetime import timedelta
+from urllib.parse import urlencode
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.jwt import create_access_token, create_refresh_token
+from app.core.jwt import create_access_token, create_refresh_token, decode_token
 from app.models.user import OAuthAccount, User
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -26,8 +28,7 @@ def get_google_auth_url(state: str) -> str:
         "access_type": "offline",
         "prompt": "consent",
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
-    return f"{GOOGLE_AUTH_URL}?{query}"
+    return f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
 
 
 async def exchange_google_code(code: str) -> dict:
@@ -78,7 +79,12 @@ async def get_or_create_user(db: AsyncSession, userinfo: dict) -> User:
             avatar_url=userinfo.get("picture"),
         )
         db.add(user)
-        await db.flush()
+        try:
+            await db.flush()
+        except IntegrityError:
+            await db.rollback()
+            result = await db.execute(select(User).where(User.email == userinfo["email"]))
+            user = result.scalar_one()
 
     oauth = OAuthAccount(
         user_id=user.id,
@@ -89,6 +95,31 @@ async def get_or_create_user(db: AsyncSession, userinfo: dict) -> User:
     await db.commit()
     await db.refresh(user)
     return user
+
+
+ONE_TIME_CODE_TTL = 30  # seconds
+
+
+async def issue_one_time_code(user_id: uuid.UUID, redis) -> str:
+    import secrets
+
+    code = secrets.token_urlsafe(32)
+    await redis.setex(f"login_code:{code}", ONE_TIME_CODE_TTL, str(user_id))
+    return code
+
+
+async def exchange_one_time_code(code: str, redis) -> tuple[str, str]:
+    from fastapi import HTTPException, status
+
+    user_id = await redis.getdel(f"login_code:{code}")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code"
+        )
+    access_token = create_access_token(user_id)
+    refresh_token = create_refresh_token(user_id)
+    await redis.setex(f"refresh:{refresh_token}", REFRESH_TOKEN_TTL, user_id)
+    return access_token, refresh_token
 
 
 async def issue_tokens(user_id: uuid.UUID, redis) -> tuple[str, str]:
@@ -102,17 +133,13 @@ async def issue_tokens(user_id: uuid.UUID, redis) -> tuple[str, str]:
 async def rotate_refresh_token(old_refresh_token: str, redis) -> tuple[str, str]:
     from fastapi import HTTPException, status
 
-    from app.core.jwt import decode_token
+    decode_token(old_refresh_token)
 
-    user_id = await redis.get(f"refresh:{old_refresh_token}")
+    user_id = await redis.getdel(f"refresh:{old_refresh_token}")
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
-
-    decode_token(old_refresh_token)
-
-    await redis.delete(f"refresh:{old_refresh_token}")
 
     access_token = create_access_token(user_id)
     refresh_token = create_refresh_token(user_id)
