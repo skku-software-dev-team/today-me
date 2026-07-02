@@ -22,24 +22,25 @@ def build_gpt_image_prompt(
     mood: str,
     weather: str,
     energy: int,
-    music_picks: list = [],
-    place_picks: list = [],
-    food_picks: list = [],
-    style_picks: list = [],
+    music_picks: list | None = None,
+    place_picks: list | None = None,
+    food_picks: list | None = None,
+    style_picks: list | None = None,
 ) -> str:
     energy_word = _ENERGY_WORDS.get(energy, "calm and balanced")
+    music_picks = music_picks or []
+    place_picks = place_picks or []
+    food_picks = food_picks or []
+    style_picks = style_picks or []
 
     music_desc = (
         ", ".join(f'"{m["title"]}" by {m["artist"]}' for m in music_picks[:2])
-        if music_picks else ""
+        if music_picks
+        else ""
     )
-    place_desc = (
-        ", ".join(p["name"] for p in place_picks[:2])
-        if place_picks else ""
-    )
+    place_desc = ", ".join(p["name"] for p in place_picks[:2]) if place_picks else ""
     food_desc = (
-        ", ".join(f'{f["name"]} ({f["cuisine"]})' for f in food_picks[:2])
-        if food_picks else ""
+        ", ".join(f'{f["name"]} ({f["cuisine"]})' for f in food_picks[:2]) if food_picks else ""
     )
     style_desc = style_picks[0]["description"] if style_picks else ""
 

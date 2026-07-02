@@ -1,6 +1,7 @@
 import logging
 import os
 
+from celery.exceptions import SoftTimeLimitExceeded
 from openai import OpenAI
 
 from app.agents.moodboard.agent import build_gpt_image_prompt
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _generate_image(mood: str, weather: str, energy: int) -> str:
     prompt = build_gpt_image_prompt(mood=mood, weather=weather, energy=energy)
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), timeout=100)
     response = client.images.generate(
         model="gpt-image-1",
         prompt=prompt,
@@ -29,6 +30,7 @@ def _generate_image(mood: str, weather: str, energy: int) -> str:
     max_retries=3,
     default_retry_delay=10,
     name="tasks.generate_moodboard",
+    ignore_result=True,  # DB에 직접 쓰므로 Redis에 결과 저장 불필요
 )
 def generate_moodboard(self, report_id: str, mood: str, weather: str, energy: int):
     from sqlalchemy import create_engine, text
@@ -50,7 +52,10 @@ def generate_moodboard(self, report_id: str, mood: str, weather: str, energy: in
             conn.commit()
 
         logger.info(f"[moodboard] 완료 report_id={report_id} url={image_url}")
-        return {"report_id": report_id, "moodboard_url": image_url}
+
+    except SoftTimeLimitExceeded:
+        logger.error(f"[moodboard] 타임아웃 report_id={report_id}, 재시도 예정")
+        raise self.retry(countdown=30) from None
 
     except Exception as exc:
         logger.error(f"[moodboard] 실패 report_id={report_id} error={exc}")

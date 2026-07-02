@@ -136,8 +136,8 @@ const MOCK_REPORT_ID = "550e8400-e29b-41d4-a716-446655440000";
 // ─── 핸들러 ──────────────────────────────────────────────────────
 
 export const handlers = [
-  // POST /v1/curate
-  http.post("/v1/curate", async ({ request }) => {
+  // POST /api/v1/curate
+  http.post("/api/v1/curate", async ({ request }) => {
     await delay(1500);
     const body = (await request.json()) as {
       mood: string;
@@ -157,14 +157,14 @@ export const handlers = [
     });
   }),
 
-  // POST /v1/feedback
-  http.post("/v1/feedback", async () => {
+  // POST /api/v1/feedback
+  http.post("/api/v1/feedback", async () => {
     await delay(200);
     return HttpResponse.json({ status: "ok" });
   }),
 
-  // GET /v1/history
-  http.get("/v1/history", async ({ request }) => {
+  // GET /api/v1/history
+  http.get("/api/v1/history", async ({ request }) => {
     await delay(600);
     const url = new URL(request.url);
     const limit = Number(url.searchParams.get("limit") ?? 20);
@@ -210,6 +210,11 @@ export const handlers = [
   }),
 
   // auth mock — 백엔드 없이도 로그인 상태 유지
+  http.post("/api/auth/token", async () => {
+    await delay(100);
+    return HttpResponse.json({ access_token: "mock-jwt-token-for-dev" });
+  }),
+
   http.post("/api/auth/refresh", async () => {
     await delay(100);
     return HttpResponse.json({ access_token: "mock-jwt-token-for-dev" });
