@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.jwt import create_access_token, create_refresh_token
+from app.core.jwt import create_access_token, create_refresh_token, decode_token
 from app.models.user import OAuthAccount, User
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -102,6 +102,7 @@ ONE_TIME_CODE_TTL = 30  # seconds
 
 async def issue_one_time_code(user_id: uuid.UUID, redis) -> str:
     import secrets
+
     code = secrets.token_urlsafe(32)
     await redis.setex(f"login_code:{code}", ONE_TIME_CODE_TTL, str(user_id))
     return code
@@ -109,9 +110,12 @@ async def issue_one_time_code(user_id: uuid.UUID, redis) -> str:
 
 async def exchange_one_time_code(code: str, redis) -> tuple[str, str]:
     from fastapi import HTTPException, status
+
     user_id = await redis.getdel(f"login_code:{code}")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired code"
+        )
     access_token = create_access_token(user_id)
     refresh_token = create_refresh_token(user_id)
     await redis.setex(f"refresh:{refresh_token}", REFRESH_TOKEN_TTL, user_id)
@@ -133,7 +137,9 @@ async def rotate_refresh_token(old_refresh_token: str, redis) -> tuple[str, str]
 
     user_id = await redis.getdel(f"refresh:{old_refresh_token}")
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     access_token = create_access_token(user_id)
     refresh_token = create_refresh_token(user_id)

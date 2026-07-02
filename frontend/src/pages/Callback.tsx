@@ -10,14 +10,26 @@ export default function Callback({ onCallback }: Props) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("access_token");
+    const code = params.get("code");
 
-    if (token) {
-      onCallback(token);
-      navigate("/", { replace: true });
-    } else {
+    if (!code) {
       navigate("/login", { replace: true });
+      return;
     }
+
+    fetch(`/api/auth/token?code=${encodeURIComponent(code)}`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("token exchange failed");
+        return res.json();
+      })
+      .then(({ access_token }) => {
+        onCallback(access_token);
+        navigate("/", { replace: true });
+      })
+      .catch(() => navigate("/login", { replace: true }));
   }, []);
 
   return (
