@@ -28,6 +28,8 @@ $GOOGLE_MAPS_API_KEY = [System.Environment]::GetEnvironmentVariable("GOOGLE_MAPS
 $LANGSMITH_API_KEY = [System.Environment]::GetEnvironmentVariable("LANGSMITH_API_KEY")
 $LANGSMITH_TRACING = [System.Environment]::GetEnvironmentVariable("LANGSMITH_TRACING")
 if (-not $LANGSMITH_TRACING) { $LANGSMITH_TRACING = "false" }
+$LANGSMITH_ENDPOINT = [System.Environment]::GetEnvironmentVariable("LANGSMITH_ENDPOINT")
+if (-not $LANGSMITH_ENDPOINT) { $LANGSMITH_ENDPOINT = "https://api.smith.langchain.com" }
 $LANGSMITH_PROJECT = [System.Environment]::GetEnvironmentVariable("LANGSMITH_PROJECT")
 if (-not $LANGSMITH_PROJECT) { $LANGSMITH_PROJECT = "today-me" }
 
@@ -52,6 +54,7 @@ kubectl create secret generic app-secret `
     --from-literal=GOOGLE_MAPS_API_KEY="$GOOGLE_MAPS_API_KEY" `
     --from-literal=LANGSMITH_API_KEY="$LANGSMITH_API_KEY" `
     --from-literal=LANGSMITH_TRACING="$LANGSMITH_TRACING" `
+    --from-literal=LANGSMITH_ENDPOINT="$LANGSMITH_ENDPOINT" `
     --from-literal=LANGSMITH_PROJECT="$LANGSMITH_PROJECT" `
     --dry-run=client -o yaml | kubectl apply -f -
 
