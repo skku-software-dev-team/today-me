@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { submitFeedback } from "../lib/api";
+import { getMoodboard, submitFeedback } from "../lib/api";
 import type {
   CurateResponse,
   AgentKey,
@@ -102,6 +102,27 @@ export default function Result() {
   const navigate = useNavigate();
   const result = location.state as CurateResponse | null;
   const [ratings, setRatings] = useState<Record<string, 1 | -1>>({});
+  const [moodboardUrl, setMoodboardUrl] = useState<string | null>(
+    result?.moodboard_url ?? null,
+  );
+
+  useEffect(() => {
+    if (!result || moodboardUrl) return;
+    let attempts = 0;
+    const MAX = 60; // 최대 3분 (3초 × 60)
+    const id = setInterval(async () => {
+      attempts++;
+      try {
+        const data = await getMoodboard(result.report_id);
+        if (data.moodboard_url) {
+          setMoodboardUrl(data.moodboard_url);
+          clearInterval(id);
+        }
+      } catch {}
+      if (attempts >= MAX) clearInterval(id);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [result, moodboardUrl]);
 
   if (!result) {
     return (
@@ -153,12 +174,19 @@ export default function Result() {
 
       <main className="max-w-md mx-auto pb-12">
         {/* Moodboard */}
-        {result.moodboard_url && (
+        {moodboardUrl ? (
           <img
-            src={result.moodboard_url}
+            src={moodboardUrl}
             alt="오늘의 무드보드"
             className="w-full aspect-video object-cover"
           />
+        ) : (
+          <div className="w-full aspect-video bg-stone-100 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 text-stone-400">
+              <div className="w-6 h-6 border-2 border-stone-300 border-t-stone-500 rounded-full animate-spin" />
+              <span className="text-xs">무드보드 생성 중...</span>
+            </div>
+          </div>
         )}
 
         <div className="px-6 pt-6 flex flex-col gap-8">

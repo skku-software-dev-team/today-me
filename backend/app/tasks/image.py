@@ -1,27 +1,27 @@
+import base64
 import logging
 import os
+from io import BytesIO
 
-from openai import OpenAI
+from huggingface_hub import InferenceClient
 
-from app.agents.moodboard.agent import build_gpt_image_prompt
+from app.agents.moodboard.agent import _HF_MODEL, build_image_prompt
 from app.core.celery import celery_app
 
 logger = logging.getLogger(__name__)
 
 
 def _generate_image(mood: str, weather: str, energy: int) -> str:
-    prompt = build_gpt_image_prompt(mood=mood, weather=weather, energy=energy)
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-    response = client.images.generate(
-        model="gpt-image-1",
-        prompt=prompt,
-        size="1536x1024",
-        n=1,
+    prompt = build_image_prompt(mood=mood, weather=weather, energy=energy)
+    client = InferenceClient(
+        model=_HF_MODEL,
+        token=os.environ.get("HF_API_TOKEN"),
     )
-    item = response.data[0]
-    if getattr(item, "url", None):
-        return item.url
-    return f"data:image/png;base64,{item.b64_json}"
+    image = client.text_to_image(prompt=prompt, width=1024, height=576)
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+    b64 = base64.b64encode(buffer.getvalue()).decode()
+    return f"data:image/png;base64,{b64}"
 
 
 @celery_app.task(
