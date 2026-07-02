@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     # CORS
     frontend_url: str = "http://localhost:5173"
 
+    # Agent layer
+    openai_api_key: str = ""
+    youtube_api_key: str = ""
+    langsmith_tracing: str = "false"
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_api_key: str = ""
+    langsmith_project: str = "today-me"
+
     class Config:
         env_file = ".env"
 

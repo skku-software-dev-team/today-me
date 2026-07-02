@@ -277,21 +277,51 @@ export default function Result() {
               {result.style_picks.map((p: StylePick, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-xl p-4 border border-stone-100"
+                  className="bg-white rounded-xl border border-stone-100 overflow-hidden"
                 >
-                  <p className="text-sm font-medium text-stone-800">
-                    👗 {p.description}
-                  </p>
-                  <p className="text-xs text-stone-500 mt-2 leading-relaxed">
-                    {p.reason}
-                  </p>
-                  <FeedbackBtns
-                    feedbackKey={`style-${i}`}
-                    ratings={ratings}
-                    onRate={(score, comment) =>
-                      rate("style", i, score, comment)
-                    }
-                  />
+                  {p.image_url && (
+                    <img
+                      src={p.image_url}
+                      alt={p.description}
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+                  <div className="p-4">
+                    {p.product_url ? (
+                      <a
+                        href={p.product_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium text-stone-800 hover:underline"
+                      >
+                        👗 {p.description}
+                      </a>
+                    ) : (
+                      <p className="text-sm font-medium text-stone-800">
+                        👗 {p.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-stone-500 mt-2 leading-relaxed">
+                      {p.reason}
+                    </p>
+                    {p.product_url && (
+                      <a
+                        href={p.product_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block mt-2 text-xs text-stone-500 border border-stone-200 rounded-full px-3 py-1 hover:bg-stone-50 transition-colors"
+                      >
+                        네이버 쇼핑에서 보기 →
+                      </a>
+                    )}
+                    <FeedbackBtns
+                      feedbackKey={`style-${i}`}
+                      ratings={ratings}
+                      onRate={(score, comment) =>
+                        rate("style", i, score, comment)
+                      }
+                    />
+                  </div>
                 </div>
               ))}
             </div>

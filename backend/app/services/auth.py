@@ -33,13 +33,16 @@ def get_google_auth_url(state: str) -> str:
 
 async def exchange_google_code(code: str) -> dict:
     async with httpx.AsyncClient() as client:
-        resp = await client.post(GOOGLE_TOKEN_URL, data={
-            "code": code,
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
-            "redirect_uri": settings.google_redirect_uri,
-            "grant_type": "authorization_code",
-        })
+        resp = await client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
         resp.raise_for_status()
         tokens = resp.json()
 
@@ -124,7 +127,6 @@ async def issue_tokens(user_id: uuid.UUID, redis) -> tuple[str, str]:
 
 
 async def rotate_refresh_token(old_refresh_token: str, redis) -> tuple[str, str]:
-    from app.core.jwt import decode_token
     from fastapi import HTTPException, status
 
     decode_token(old_refresh_token)

@@ -1,8 +1,10 @@
 import secrets
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.services.auth import (
@@ -11,10 +13,9 @@ from app.services.auth import (
     get_google_auth_url,
     get_or_create_user,
     issue_one_time_code,
-    rotate_refresh_token,
     revoke_refresh_token,
+    rotate_refresh_token,
 )
-from app.core.config import settings
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -51,7 +52,6 @@ async def google_callback(
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
-    # state 검증 — Redis에 없으면 위조된 요청
     valid = await redis.getdel(f"oauth_state:{state}")
     if not valid:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid state")
@@ -59,7 +59,9 @@ async def google_callback(
     try:
         userinfo = await exchange_google_code(code)
     except Exception as err:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed") from err
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Google OAuth failed"
+        ) from err
 
     user = await get_or_create_user(db, userinfo)
     code = await issue_one_time_code(user.id, redis)
