@@ -10,6 +10,7 @@ from agents import Agent, Runner
 from agents.mcp import MCPServerStdio
 from langsmith import traceable
 
+from app.agents.prompt_loader import load_system_prompt
 from app.agents.state import DailyState, FoodPick
 
 logger = logging.getLogger("food_agent")
@@ -92,7 +93,7 @@ async def food_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="food-curator",
-            instructions=_SYSTEM_PROMPT,
+            instructions=await load_system_prompt("food", _SYSTEM_PROMPT),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

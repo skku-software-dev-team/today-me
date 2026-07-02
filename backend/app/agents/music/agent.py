@@ -14,6 +14,7 @@ from agents import Agent, Runner
 from agents.mcp import MCPServerStdio
 from langsmith import traceable
 
+from app.agents.prompt_loader import load_system_prompt
 from app.agents.state import DailyState, MusicPick
 
 logger = logging.getLogger("music_agent")
@@ -86,7 +87,7 @@ async def music_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="music-curator",
-            instructions=_SYSTEM_PROMPT,
+            instructions=await load_system_prompt("music", _SYSTEM_PROMPT),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

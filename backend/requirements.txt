@@ -23,3 +23,6 @@ google-api-python-client==2.198.0
 
 # Memory layer
 pgvector==0.3.6
+
+# Prompt optimization
+dspy-ai==2.6.27
