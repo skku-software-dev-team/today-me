@@ -70,8 +70,19 @@ async def _generate_moodboard_bg(report_id: str, state: DailyState) -> None:
         result = await moodboard_agent_node(state)
         url = result.get("moodboard_url")
         if url:
+            from sqlalchemy import text
+            from app.core.database import AsyncSessionLocal
+
             r = await get_redis()
             await r.set(f"moodboard:{report_id}", url, ex=3600)
+
+            async with AsyncSessionLocal() as db:
+                await db.execute(
+                    text("UPDATE daily_reports SET moodboard_url = :url WHERE id = :id"),
+                    {"url": url, "id": report_id},
+                )
+                await db.commit()
+
             logger.info("moodboard 저장 완료 report_id=%s", report_id)
     except Exception:
         logger.error("moodboard 백그라운드 실패:\n%s", traceback.format_exc())

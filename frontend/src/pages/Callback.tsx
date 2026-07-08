@@ -11,8 +11,10 @@ export default function Callback({ onCallback }: Props) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
+    console.log("[Callback] mounted, code=", code, "search=", window.location.search);
 
     if (!code) {
+      console.log("[Callback] no code, redirecting to login");
       navigate("/login", { replace: true });
       return;
     }
@@ -22,6 +24,7 @@ export default function Callback({ onCallback }: Props) {
       credentials: "include",
     })
       .then((res) => {
+        console.log("[Callback] /api/auth/token status=", res.status);
         if (!res.ok) throw new Error("token exchange failed");
         return res.json();
       })
@@ -29,7 +32,10 @@ export default function Callback({ onCallback }: Props) {
         onCallback(access_token);
         navigate("/", { replace: true });
       })
-      .catch(() => navigate("/login", { replace: true }));
+      .catch((err) => {
+        console.error("[Callback] error=", err);
+        navigate("/login", { replace: true });
+      });
   }, []);
 
   return (

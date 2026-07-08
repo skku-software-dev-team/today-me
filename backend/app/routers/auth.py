@@ -30,7 +30,7 @@ def _set_refresh_cookie(response: Response, token: str):
         secure=settings.cookie_secure,
         samesite="lax",
         max_age=COOKIE_MAX_AGE,
-        path="/auth",
+        path="/api/auth",
     )
 
 
@@ -102,5 +102,5 @@ async def logout(
 ):
     if refresh_token:
         await revoke_refresh_token(refresh_token, redis)
-    response.delete_cookie("refresh_token", path="/auth")
+    response.delete_cookie("refresh_token", path="/api/auth")
     return {"ok": True}
