@@ -43,7 +43,7 @@ today-me/
 ├── frontend/                       # React + Vite + Tailwind
 │   ├── src/
 │   │   ├── hooks/                  # useAuth
-│   │   ├── lib/                    # api fetch 유틸
+│   │   ├── lib/                    
 │   │   └── pages/                  # Login, Callback, Home
 │   ├── Dockerfile
 │   └── nginx.conf
