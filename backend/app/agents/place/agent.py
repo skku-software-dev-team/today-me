@@ -91,7 +91,7 @@ async def place_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="place-curator",
-            instructions=await load_system_prompt("place", _SYSTEM_PROMPT),
+            instructions=await load_system_prompt("place", _SYSTEM_PROMPT, state["user_id"]),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

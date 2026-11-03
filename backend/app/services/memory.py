@@ -1,7 +1,9 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 
 import openai
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,8 +11,24 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.report import DailyReport, ReportEmbedding
 
+logger = logging.getLogger("memory")
+
 EMBEDDING_MODEL = "text-embedding-3-small"
 RAG_TOP_K = 5
+
+
+def picks_for(report: DailyReport, agent: str) -> list[dict]:
+    picks_map = {
+        "music": report.music_picks,
+        "place": report.place_picks,
+        "food": report.food_picks,
+        "style": report.style_picks,
+    }
+    return picks_map.get(agent) or []
+
+
+def pick_label(pick: dict) -> str:
+    return pick.get("title") or pick.get("name") or pick.get("description", "")
 
 
 def _serialize(report: DailyReport) -> str:
@@ -23,15 +41,11 @@ def _serialize(report: DailyReport) -> str:
     liked, disliked = [], []
     for key, fb in (report.feedback or {}).items():
         agent, idx = key.rsplit("-", 1)
-        picks_map = {
-            "music": report.music_picks,
-            "place": report.place_picks,
-            "food":  report.food_picks,
-            "style": report.style_picks,
-        }
-        pick = (picks_map.get(agent) or [])[int(idx)] if picks_map.get(agent) else None
-        label = (pick or {}).get("title") or (pick or {}).get("name") or (pick or {}).get("description", key)
-        (liked if fb["score"] > 0 else disliked).append(label)
+        picks = picks_for(report, agent)
+        # 검증 도입 전에 저장된 잘못된 키가 있어도 임베딩 갱신이 막히지 않게 건너뛴다.
+        if int(idx) >= len(picks):
+            continue
+        (liked if fb["score"] > 0 else disliked).append(pick_label(picks[int(idx)]))
 
     lines = [
         f"기분: {report.mood}",
@@ -143,22 +157,41 @@ async def get_rag_context(
 async def apply_feedback(
     db: AsyncSession,
     report_id: uuid.UUID,
+    user_id: uuid.UUID,
     agent: str,
     pick_index: int,
     score: int,
     comment: str | None,
-) -> None:
-    """피드백 저장 후 임베딩 갱신."""
+) -> bool:
+    """요청자 소유의 리포트와 실제 존재하는 추천인지 확인한 뒤 피드백을 저장하고 임베딩을 갱신한다.
+
+    Returns:
+        이 추천에 처음 남긴 피드백이면 True. 평가 변경이나 코멘트 추가는 False.
+    """
     report = await db.get(DailyReport, report_id)
-    if not report:
-        return
+    # 남의 리포트도 '없음'과 같은 404로 응답해 존재 여부를 드러내지 않는다.
+    if not report or report.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+
+    if pick_index >= len(picks_for(report, agent)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="pick_index out of range",
+        )
 
     key = f"{agent}-{pick_index}"
     feedback = dict(report.feedback or {})
+    is_new = key not in feedback
     feedback[key] = {"score": score, "comment": comment}
     report.feedback = feedback
     report.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(report)
 
-    await upsert_embedding(db, report)
+    # 피드백은 이미 저장됐다. 임베딩 API 장애로 사용자 요청까지 실패시키지 않는다.
+    try:
+        await upsert_embedding(db, report)
+    except Exception:
+        logger.exception("임베딩 갱신 실패 report_id=%s", report.id)
+
+    return is_new

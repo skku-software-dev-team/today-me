@@ -105,7 +105,7 @@ async def style_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="style-curator",
-            instructions=await load_system_prompt("style", _SYSTEM_PROMPT),
+            instructions=await load_system_prompt("style", _SYSTEM_PROMPT, state["user_id"]),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

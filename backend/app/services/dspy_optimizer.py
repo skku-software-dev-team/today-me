@@ -1,15 +1,16 @@
-"""DSPy 기반 에이전트 프롬프트 최적화.
+"""피드백 기반 사용자별 추천 프롬프트 개선 (DSPy).
 
 흐름:
-  1. DB에서 해당 에이전트의 좋아요 피드백이 있는 DailyReport 수집
-  2. (입력 컨텍스트, 좋아했던 추천) 쌍을 DSPy 훈련 예시로 변환
-  3. BootstrapFewShot으로 instruction + few-shot demos 최적화
-  4. 결과를 OptimizedPrompt 테이블에 upsert
+  1. 해당 사용자의 최근 리포트에서 에이전트별 좋아요/싫어요를 수집한다.
+  2. 좋아요가 있는 리포트를 DSPy 예시로 바꾸고, 최근 예시로 few-shot 후보를 만든다.
+  3. 가장 최근 예시로 기본 프롬프트와 후보를 LLM으로 비교한다.
+  4. 후보가 기본보다 나쁘지 않을 때만 저장한다. 실패하거나 나쁘면 기존 프롬프트를 유지한다.
 """
 
 import json
 import logging
 import os
+import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -18,25 +19,24 @@ from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.models.optimized_prompt import OptimizedPrompt
-from app.models.report import DailyReport, ReportEmbedding
+from app.models.report import DailyReport
+from app.services.memory import pick_label, picks_for
 
 logger = logging.getLogger("dspy_optimizer")
 
 AgentType = Literal["music", "place", "food", "style"]
 
-MIN_EXAMPLES = 3  # 최적화 실행 최소 훈련 예시 수
-
-
-# ── DSPy 시그니처 ──────────────────────────────────────────────────
+MIN_EXAMPLES = 3  # 이보다 적으면 개선을 건너뛴다
+RECENT_REPORTS = 30  # 오래된 취향이 계속 남지 않도록 최근 기록만 쓴다
+MAX_DEMOS = 4
 
 
 class RecommendationSignature(dspy.Signature):
-    """사용자의 오늘 감정·날씨·에너지·취향 컨텍스트를 바탕으로 최적의 추천을 JSON 배열로 생성합니다."""
+    """사용자의 오늘 감정·날씨·에너지를 바탕으로 최적의 추천을 JSON 배열로 생성합니다."""
 
     mood: str = dspy.InputField(desc="사용자의 현재 기분")
     weather: str = dspy.InputField(desc="현재 날씨")
     energy: str = dspy.InputField(desc="에너지 레벨 (1~5)")
-    rag_context: str = dspy.InputField(desc="과거 취향 컨텍스트 (없으면 빈 문자열)")
     recommendations: str = dspy.OutputField(desc="JSON 배열 형태의 추천 결과")
 
 
@@ -44,62 +44,48 @@ class Recommender(dspy.Module):
     def __init__(self):
         self.generate = dspy.Predict(RecommendationSignature)
 
-    def forward(self, mood: str, weather: str, energy: str, rag_context: str):
-        return self.generate(mood=mood, weather=weather, energy=energy, rag_context=rag_context)
-
-
-# ── 메트릭 ────────────────────────────────────────────────────────
+    def forward(self, mood: str, weather: str, energy: str):
+        return self.generate(mood=mood, weather=weather, energy=energy)
 
 
 def _recommendation_metric(example: dspy.Example, pred, trace=None) -> float:
+    """유효한 JSON 배열이고 사용자가 싫어한 추천을 다시 내지 않으면 1점."""
     try:
         items = json.loads(pred.recommendations)
-        return 1.0 if isinstance(items, list) and len(items) > 0 else 0.0
-    except Exception:
+    except (TypeError, ValueError):
         return 0.0
+    if not isinstance(items, list) or not items:
+        return 0.0
+    disliked = json.loads(example.disliked)
+    return 0.0 if any(label in pred.recommendations for label in disliked) else 1.0
 
 
-# ── 훈련 데이터 수집 ──────────────────────────────────────────────
-
-
-def _extract_liked_picks(report: DailyReport, agent: AgentType) -> list[dict]:
-    picks_map: dict[str, list] = {
-        "music": report.music_picks or [],
-        "place": report.place_picks or [],
-        "food": report.food_picks or [],
-        "style": report.style_picks or [],
-    }
-    picks = picks_map[agent]
-    liked = []
+def _split_feedback(report: DailyReport, agent: AgentType) -> tuple[list[dict], list[dict]]:
+    """리포트의 피드백을 (좋아요한 추천, 싫어요한 추천)으로 나눈다."""
+    picks = picks_for(report, agent)
+    liked, disliked = [], []
     for key, fb in (report.feedback or {}).items():
-        if not key.startswith(f"{agent}-"):
+        prefix, _, idx = key.rpartition("-")
+        if prefix != agent or not idx.isdigit() or int(idx) >= len(picks):
             continue
-        try:
-            idx = int(key.split("-", 1)[1])
-        except ValueError:
-            continue
-        if fb.get("score", 0) > 0 and idx < len(picks):
-            liked.append(picks[idx])
-    return liked
+        (liked if fb.get("score", 0) > 0 else disliked).append(picks[int(idx)])
+    return liked, disliked
 
 
-async def _build_trainset(agent: AgentType) -> list[dspy.Example]:
+async def _build_trainset(agent: AgentType, user_id: uuid.UUID) -> list[dspy.Example]:
+    """해당 사용자의 예시를 최신순으로 반환한다. 다른 사용자의 데이터는 쓰지 않는다."""
     async with AsyncSessionLocal() as db:
-        # 피드백이 있는 리포트만 조회
         result = await db.execute(
-            select(DailyReport, ReportEmbedding.embed_text)
-            .join(
-                ReportEmbedding,
-                ReportEmbedding.report_id == DailyReport.id,
-                isouter=True,
-            )
-            .where(DailyReport.feedback != {})
+            select(DailyReport)
+            .where(DailyReport.user_id == user_id, DailyReport.feedback != {})
+            .order_by(DailyReport.created_at.desc())
+            .limit(RECENT_REPORTS)
         )
-        rows = result.all()
+        reports = result.scalars().all()
 
     examples = []
-    for report, embed_text in rows:
-        liked = _extract_liked_picks(report, agent)
+    for report in reports:
+        liked, disliked = _split_feedback(report, agent)
         if not liked:
             continue
         examples.append(
@@ -107,125 +93,97 @@ async def _build_trainset(agent: AgentType) -> list[dspy.Example]:
                 mood=report.mood,
                 weather=report.weather or "",
                 energy=str(report.energy),
-                rag_context=embed_text or "",
                 recommendations=json.dumps(liked, ensure_ascii=False),
-            ).with_inputs("mood", "weather", "energy", "rag_context")
+                disliked=json.dumps([pick_label(p) for p in disliked], ensure_ascii=False),
+            ).with_inputs("mood", "weather", "energy")
         )
     return examples
 
 
-# ── OptimizedPrompt upsert ────────────────────────────────────────
-
-
 async def _save_optimized(
     agent: AgentType,
+    user_id: uuid.UUID,
     instruction: str,
     demos: list[dict],
     avg_score: float,
 ) -> None:
     async with AsyncSessionLocal() as db:
-        existing = await db.get(OptimizedPrompt, agent)
-        now = datetime.now(timezone.utc)
+        existing = await db.get(OptimizedPrompt, (user_id, agent))
         if existing:
             existing.instruction = instruction
             existing.few_shot_demos = demos
             existing.avg_score = avg_score
-            existing.updated_at = now
+            existing.updated_at = datetime.now(timezone.utc)
         else:
             db.add(
                 OptimizedPrompt(
+                    user_id=user_id,
                     agent_type=agent,
                     instruction=instruction,
                     few_shot_demos=demos,
                     avg_score=avg_score,
-                    created_at=now,
-                    updated_at=now,
                 )
             )
         await db.commit()
 
 
-async def load_optimized_prompt(agent: AgentType) -> OptimizedPrompt | None:
-    """에이전트 실행 시 최적화 프롬프트 로드. 없으면 None."""
-    async with AsyncSessionLocal() as db:
-        return await db.get(OptimizedPrompt, agent)
+def _evaluate(program: dspy.Module, examples: list[dspy.Example]) -> float:
+    scores = [
+        _recommendation_metric(
+            example,
+            program(mood=example.mood, weather=example.weather, energy=example.energy),
+        )
+        for example in examples
+    ]
+    return sum(scores) / len(scores)
 
 
-# ── 메인 최적화 함수 ──────────────────────────────────────────────
-
-
-async def optimize_agent(agent: AgentType) -> bool:
-    """DSPy BootstrapFewShot으로 에이전트 프롬프트 최적화.
+async def optimize_agent(agent: AgentType, user_id: uuid.UUID) -> bool:
+    """사용자의 피드백으로 에이전트 프롬프트를 개선한다.
 
     Returns:
-        True if optimization succeeded, False if skipped (not enough data).
+        새 프롬프트를 저장하면 True, 데이터 부족이나 검증 미달로 건너뛰면 False.
     """
-    examples = await _build_trainset(agent)
+    examples = await _build_trainset(agent, user_id)
     if len(examples) < MIN_EXAMPLES:
         logger.info(
-            "dspy_optimizer: %s 에이전트 훈련 예시 부족 (%d < %d), 최적화 건너뜀",
-            agent,
-            len(examples),
-            MIN_EXAMPLES,
+            "dspy_optimizer: %s 예시 부족 (%d < %d), 건너뜀", agent, len(examples), MIN_EXAMPLES
         )
         return False
 
-    logger.info("dspy_optimizer: %s 에이전트 최적화 시작 (예시 %d개)", agent, len(examples))
-
-    lm = dspy.LM(
-        "openai/gpt-4o-mini",
-        api_key=os.environ.get("OPENAI_API_KEY", ""),
-        cache=False,
-    )
-    dspy.configure(lm=lm)
-
     split = max(1, len(examples) // 5)
-    trainset = examples[split:]
-    valset = examples[:split]
+    valset, trainset = examples[:split], examples[split:]
 
-    optimizer = dspy.BootstrapFewShot(
-        metric=_recommendation_metric,
-        max_bootstrapped_demos=3,
-        max_labeled_demos=4,
+    # sample=False: 최신순 trainset의 앞쪽, 즉 최근 취향을 예시로 고른다.
+    compiled = dspy.LabeledFewShot(k=MAX_DEMOS).compile(
+        Recommender(), trainset=trainset, sample=False
     )
 
-    compiled: Recommender = optimizer.compile(
-        Recommender(),
-        trainset=trainset,
-        valset=valset if valset else None,
-    )
+    lm = dspy.LM("openai/gpt-4o-mini", api_key=os.environ.get("OPENAI_API_KEY", ""), cache=False)
+    # dspy.configure는 비동기 작업마다 다시 호출할 수 없어 context를 쓴다.
+    with dspy.context(lm=lm):
+        base_score = _evaluate(Recommender(), valset)
+        score = _evaluate(compiled, valset)
 
-    # 최적화된 instruction 및 demos 추출
-    instruction: str = compiled.generate.extended_signature.instructions
-    demos: list[dict] = [
-        {
-            "mood": d.get("mood", ""),
-            "weather": d.get("weather", ""),
-            "energy": d.get("energy", ""),
-            "rag_context": d.get("rag_context", ""),
-            "recommendations": d.get("recommendations", "[]"),
-        }
-        for d in (compiled.generate.demos or [])
-        if d.get("recommendations")
-    ]
-
-    # 검증 세트 기준 평균 점수 계산
-    scores = []
-    for ex in valset or examples[:2]:
-        pred = compiled(
-            mood=ex.mood,
-            weather=ex.weather,
-            energy=ex.energy,
-            rag_context=ex.rag_context,
+    if score < base_score:
+        logger.info(
+            "dspy_optimizer: %s 후보 점수 미달 (%.2f < %.2f), 기존 프롬프트 유지",
+            agent,
+            score,
+            base_score,
         )
-        scores.append(_recommendation_metric(ex, pred))
-    avg_score = sum(scores) / len(scores) if scores else 0.0
+        return False
 
-    await _save_optimized(agent, instruction, demos, avg_score)
-    logger.info(
-        "dspy_optimizer: %s 최적화 완료 — demos=%d, avg_score=%.2f",
-        agent,
-        len(demos),
-        avg_score,
-    )
+    demos = [
+        {
+            "mood": demo.get("mood", ""),
+            "weather": demo.get("weather", ""),
+            "energy": demo.get("energy", ""),
+            "recommendations": demo.get("recommendations", "[]"),
+            "disliked": demo.get("disliked", "[]"),
+        }
+        for demo in compiled.generate.demos
+    ]
+    await _save_optimized(agent, user_id, compiled.generate.signature.instructions, demos, score)
+    logger.info("dspy_optimizer: %s 개선 완료, demos=%d, score=%.2f", agent, len(demos), score)
     return True

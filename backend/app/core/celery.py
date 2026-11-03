@@ -6,9 +6,11 @@ celery_app = Celery(
     "today-me",
     broker=settings.redis_url,
     backend=settings.redis_url,
+    include=["app.tasks.optimize"],  # 워커가 시작할 때 태스크를 등록한다
 )
 
 celery_app.conf.update(
+    task_default_queue="default",  # k8s 워커의 --queues=default와 일치해야 한다
     task_serializer="json",
     result_serializer="json",
     accept_content=["json"],

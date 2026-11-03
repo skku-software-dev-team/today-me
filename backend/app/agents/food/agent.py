@@ -93,7 +93,7 @@ async def food_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="food-curator",
-            instructions=await load_system_prompt("food", _SYSTEM_PROMPT),
+            instructions=await load_system_prompt("food", _SYSTEM_PROMPT, state["user_id"]),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

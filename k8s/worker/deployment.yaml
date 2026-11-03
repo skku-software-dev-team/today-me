@@ -25,6 +25,10 @@ spec:
           image: localhost:31500/today-me-backend:latest
           imagePullPolicy: Always
           command: ["celery", "-A", "app.core.celery.celery_app", "worker", "--loglevel=info", "--queues=default"]
+          env:
+            # 루트 파일시스템이 읽기 전용이라 DSPy 캐시를 쓰기 가능한 /tmp에 둔다
+            - name: DSPY_CACHEDIR
+              value: /tmp/dspy_cache
           envFrom:
             - secretRef:
                 name: app-secret

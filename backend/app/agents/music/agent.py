@@ -87,7 +87,7 @@ async def music_agent_node(state: DailyState) -> dict:
     ) as mcp_server:
         agent = Agent(
             name="music-curator",
-            instructions=await load_system_prompt("music", _SYSTEM_PROMPT),
+            instructions=await load_system_prompt("music", _SYSTEM_PROMPT, state["user_id"]),
             mcp_servers=[mcp_server],
             model="gpt-4o-mini",
         )

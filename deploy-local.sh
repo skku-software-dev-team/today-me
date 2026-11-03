@@ -27,6 +27,10 @@ kubectl apply -f k8s/backend/deployment.yaml
 kubectl apply -f k8s/worker/deployment.yaml
 kubectl apply -f k8s/frontend/deployment.yaml
 
+echo "==> DB 마이그레이션"
+kubectl rollout status deployment/backend -n "$NAMESPACE"
+kubectl exec -n "$NAMESPACE" deployment/backend -- alembic upgrade head
+
 echo "==> ingress 적용"
 kubectl apply -f k8s/ingress.yaml
 

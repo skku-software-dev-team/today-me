@@ -1,7 +1,8 @@
+import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import DateTime, Float, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -10,6 +11,9 @@ from app.core.database import Base
 class OptimizedPrompt(Base):
     __tablename__ = "optimized_prompts"
 
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
     agent_type: Mapped[str] = mapped_column(Text, primary_key=True)  # music|place|food|style
 
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
