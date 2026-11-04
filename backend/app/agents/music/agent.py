@@ -27,7 +27,7 @@ _SYSTEM_PROMPT = """\
 ## 지침
 - search_music 도구로 YouTube에서 실제 영상을 검색하세요.
 - 장르·분위기·언어를 다양하게 섞어 정확히 3곡을 추천하세요.
-- 취향 컨텍스트(rag_context)가 있으면 적극 반영하세요.
+- 취향 컨텍스트가 있으면 반영하세요. 날짜가 최근인 평가를 우선하고, 싫어요 항목은 피하세요.
 
 ## 출력 형식 (JSON 배열만, 다른 텍스트 없이)
 [
@@ -42,7 +42,7 @@ def _user_message(state: DailyState) -> str:
         f"무드: {state['mood']}\n"
         f"날씨: {state['weather']}\n"
         f"에너지: {state['energy']}/5\n"
-        f"취향 컨텍스트:\n{state.get('rag_context') or '없음'}"
+        f"취향 컨텍스트:\n{state.get('rag_contexts', {}).get('music') or '없음'}"
     )
 
 

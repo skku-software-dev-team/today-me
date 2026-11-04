@@ -8,6 +8,8 @@
   (moodboard는 curate API에서 BackgroundTask로 별도 실행)
 """
 
+import logging
+
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
@@ -16,21 +18,30 @@ from app.agents.music.agent import music_agent_node
 from app.agents.place.agent import place_agent_node
 from app.agents.state import DailyState
 from app.agents.style.agent import style_agent_node
-from app.services.memory import get_rag_context, save_report
+from app.services.memory import get_agent_contexts, save_report
+
+logger = logging.getLogger("graph")
 
 # ── 노드 구현 ──────────────────────────────────────────────────────
 
 
 async def rag_node(state: DailyState) -> dict:
-    """pgvector 취향 메모리 조회 → rag_context 주입."""
-    context = await get_rag_context(
-        user_id=state["user_id"],
-        mood=state["mood"],
-        weather=state.get("weather", ""),
-        energy=state["energy"],
-        district=state.get("location", {}).get("district"),
-    )
-    return {"rag_context": context}
+    """pgvector 취향 메모리를 조회해 에이전트별 컨텍스트를 주입한다.
+
+    조회에 실패해도 개인화만 빠질 뿐 추천은 계속되어야 하므로 빈 컨텍스트로 진행한다.
+    """
+    try:
+        contexts = await get_agent_contexts(
+            user_id=state["user_id"],
+            mood=state["mood"],
+            weather=state.get("weather", ""),
+            energy=state["energy"],
+            district=state.get("location", {}).get("district"),
+        )
+    except Exception:
+        logger.exception("RAG 조회 실패, 컨텍스트 없이 진행")
+        contexts = {}
+    return {"rag_contexts": contexts}
 
 
 async def supervisor_node(state: DailyState) -> dict:

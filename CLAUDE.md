@@ -82,7 +82,7 @@ class DailyState(TypedDict):
     moodboard_url: str | None
 
     # 메타
-    rag_context: str           # 실행 전 RAG 조회 결과
+    rag_contexts: dict[str, str]  # 실행 전 RAG 조회 결과 (에이전트별)
     llm_calls: list[str]       # 디버깅용 호출 로그
     messages: list[dict]       # 대화 히스토리
     report_id: str | None      # DB 저장 후 채워짐
@@ -136,7 +136,7 @@ Authorization: Bearer <jwt>
 ```python
 class AgentInput(TypedDict):
     state: DailyState          # 공유 상태 전체
-    rag_context: str           # 오케스트레이터가 주입한 취향 컨텍스트
+    rag_context: str           # 오케스트레이터가 주입한 이 에이전트의 취향 컨텍스트
 
 class AgentOutput(TypedDict):
     picks: list[dict]          # 에이전트별 결과

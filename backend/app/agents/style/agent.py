@@ -37,7 +37,7 @@ _SYSTEM_PROMPT = """\
 
 - 코디마다 search_product 도구로 핵심 아이템(예: "오버사이즈 후드 베이지")을 검색해
   첫 번째 결과의 image_url과 product_url을 출력에 포함하세요.
-- 취향 컨텍스트(rag_context)가 있으면 적극 반영하세요.
+- 취향 컨텍스트가 있으면 반영하세요. 날짜가 최근인 평가를 우선하고, 싫어요 항목은 피하세요.
 
 ## 출력 형식 (JSON 배열만, 다른 텍스트 없이)
 [
@@ -56,7 +56,7 @@ def _user_message(state: DailyState) -> str:
         f"무드: {state['mood']}\n"
         f"날씨: {state['weather']}\n"
         f"에너지: {state['energy']}/5\n"
-        f"취향 컨텍스트:\n{state.get('rag_context') or '없음'}"
+        f"취향 컨텍스트:\n{state.get('rag_contexts', {}).get('style') or '없음'}"
     )
 
 

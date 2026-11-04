@@ -14,7 +14,13 @@ from app.models.report import DailyReport, ReportEmbedding
 logger = logging.getLogger("memory")
 
 EMBEDDING_MODEL = "text-embedding-3-small"
-RAG_TOP_K = 5
+
+AGENT_TYPES = ("music", "place", "food", "style")
+RAG_CANDIDATES = 20  # 에이전트마다 평가 기록을 고를 수 있도록 넉넉히 조회한다
+RAG_TOP_K = 5  # 에이전트별 최대 기록 수
+RAG_MAX_DISTANCE = 0.7  # 코사인 거리 상한. 초기값이며 실제 데이터로 조정이 필요하다
+MAX_CONTEXT_CHARS = 1500  # 에이전트별 컨텍스트 길이 상한
+MAX_COMMENT_CHARS = 100
 
 
 def picks_for(report: DailyReport, agent: str) -> list[dict]:
@@ -29,6 +35,17 @@ def picks_for(report: DailyReport, agent: str) -> list[dict]:
 
 def pick_label(pick: dict) -> str:
     return pick.get("title") or pick.get("name") or pick.get("description", "")
+
+
+def rated_picks(report: DailyReport, agent: str) -> list[tuple[dict, dict]]:
+    """해당 에이전트에서 평가된 (추천, 피드백) 쌍을 반환한다. 잘못된 키는 건너뛴다."""
+    picks = picks_for(report, agent)
+    rated = []
+    for key, fb in (report.feedback or {}).items():
+        prefix, _, idx = key.rpartition("-")
+        if prefix == agent and idx.isdigit() and int(idx) < len(picks):
+            rated.append((picks[int(idx)], fb))
+    return rated
 
 
 def _serialize(report: DailyReport) -> str:
@@ -129,29 +146,78 @@ async def save_report(state: dict) -> DailyReport:
         return report
 
 
-async def get_rag_context(
+def _pick_with_comment(pick: dict, fb: dict) -> str:
+    comment = (fb.get("comment") or "")[:MAX_COMMENT_CHARS]
+    return f"{pick_label(pick)} ({comment})" if comment else pick_label(pick)
+
+
+def _format_record(report: DailyReport, rated: list[tuple[dict, dict]]) -> str:
+    lines = [
+        f"[{report.created_at:%Y-%m-%d}] 기분: {report.mood}, "
+        f"날씨: {report.weather or '알 수 없음'}, 에너지: {report.energy}/5"
+    ]
+    liked = [_pick_with_comment(pick, fb) for pick, fb in rated if fb.get("score", 0) > 0]
+    disliked = [_pick_with_comment(pick, fb) for pick, fb in rated if fb.get("score", 0) < 0]
+    if liked:
+        lines.append(f"좋아요: {', '.join(liked)}")
+    if disliked:
+        lines.append(f"싫어요: {', '.join(disliked)}")
+    return "\n".join(lines)
+
+
+def _agent_context(reports: list[DailyReport], agent: str) -> str:
+    """유사도 순 리포트에서 이 에이전트가 평가받은 기록만 골라 최신순 컨텍스트로 만든다."""
+    selected = []
+    used_chars = 0
+    for report in reports:
+        rated = rated_picks(report, agent)
+        if not rated:
+            continue
+        record = _format_record(report, rated)
+        if used_chars + len(record) > MAX_CONTEXT_CHARS:
+            break
+        selected.append((report.created_at, record))
+        used_chars += len(record)
+        if len(selected) == RAG_TOP_K:
+            break
+
+    selected.sort(key=lambda item: item[0], reverse=True)
+    return "\n\n".join(record for _, record in selected)
+
+
+def build_agent_contexts(rows: list[tuple[DailyReport, float]]) -> dict[str, str]:
+    """(리포트, 코사인 거리) 목록을 에이전트별 컨텍스트로 나눈다. 관련 낮은 기록은 제외한다."""
+    relevant = [report for report, distance in rows if distance <= RAG_MAX_DISTANCE]
+    return {agent: _agent_context(relevant, agent) for agent in AGENT_TYPES}
+
+
+async def get_agent_contexts(
     user_id: str,
     mood: str,
     weather: str,
     energy: int,
     district: str | None,
-) -> str:
-    """현재 입력 기반 top-k 유사 과거 기록 → 오케스트레이터 주입용 컨텍스트 문자열."""
-    query_text = _serialize_input(mood, weather, energy, district)
-    query_vector = await _embed(query_text)
+) -> dict[str, str]:
+    """현재 입력과 유사한 이 사용자의 과거 평가를 찾아 에이전트별 컨텍스트로 반환한다."""
+    query_vector = await _embed(_serialize_input(mood, weather, energy, district))
+    distance = ReportEmbedding.embedding.cosine_distance(query_vector)
 
     async with AsyncSessionLocal() as db:
-        rows = (await db.execute(
-            select(ReportEmbedding)
-            .where(ReportEmbedding.user_id == uuid.UUID(user_id))
-            .order_by(ReportEmbedding.embedding.cosine_distance(query_vector))
-            .limit(RAG_TOP_K)
-        )).scalars().all()
+        rows = (
+            await db.execute(
+                select(DailyReport, distance)
+                .join(ReportEmbedding, ReportEmbedding.report_id == DailyReport.id)
+                .where(ReportEmbedding.user_id == uuid.UUID(user_id))
+                .order_by(distance)
+                .limit(RAG_CANDIDATES)
+            )
+        ).all()
 
-    if not rows:
-        return ""
-
-    return "\n\n".join(f"[과거 기록 {i}]\n{row.embed_text}" for i, row in enumerate(rows, 1))
+    contexts = build_agent_contexts([(report, dist) for report, dist in rows])
+    logger.info(
+        "RAG 컨텍스트: 후보 %d건, 길이 %s", len(rows), {a: len(c) for a, c in contexts.items()}
+    )
+    return contexts
 
 
 async def apply_feedback(

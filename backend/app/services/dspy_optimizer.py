@@ -20,7 +20,7 @@ from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.models.optimized_prompt import OptimizedPrompt
 from app.models.report import DailyReport
-from app.services.memory import pick_label, picks_for
+from app.services.memory import pick_label, rated_picks
 
 logger = logging.getLogger("dspy_optimizer")
 
@@ -62,13 +62,9 @@ def _recommendation_metric(example: dspy.Example, pred, trace=None) -> float:
 
 def _split_feedback(report: DailyReport, agent: AgentType) -> tuple[list[dict], list[dict]]:
     """리포트의 피드백을 (좋아요한 추천, 싫어요한 추천)으로 나눈다."""
-    picks = picks_for(report, agent)
     liked, disliked = [], []
-    for key, fb in (report.feedback or {}).items():
-        prefix, _, idx = key.rpartition("-")
-        if prefix != agent or not idx.isdigit() or int(idx) >= len(picks):
-            continue
-        (liked if fb.get("score", 0) > 0 else disliked).append(picks[int(idx)])
+    for pick, fb in rated_picks(report, agent):
+        (liked if fb.get("score", 0) > 0 else disliked).append(pick)
     return liked, disliked
 
 

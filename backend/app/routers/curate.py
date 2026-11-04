@@ -111,7 +111,7 @@ async def curate(
         "food_picks": [],
         "style_picks": [],
         "moodboard_url": None,
-        "rag_context": "",
+        "rag_contexts": {},
         "llm_calls": [],
         "messages": [],
         "report_id": report_id,

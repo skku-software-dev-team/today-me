@@ -25,7 +25,7 @@ _SYSTEM_PROMPT = """\
 - 무드와 에너지 수준에 맞는 음식 유형을 선택하세요.
   예) 에너지 낮음 + 우울 → 따뜻한 국물 요리, 에너지 높음 → 활기찬 분위기의 식당
 - 다양한 음식 종류를 섞어 정확히 3곳을 추천하세요.
-- 취향 컨텍스트(rag_context)가 있으면 적극 반영하세요.
+- 취향 컨텍스트가 있으면 반영하세요. 날짜가 최근인 평가를 우선하고, 싫어요 항목은 피하세요.
 
 ## 출력 형식 (JSON 배열만, 다른 텍스트 없이)
 [
@@ -47,7 +47,7 @@ def _user_message(state: DailyState) -> str:
         f"날씨: {state['weather']}\n"
         f"에너지: {state['energy']}/5\n"
         f"위치: 위도 {loc['lat']}, 경도 {loc['lng']}\n"
-        f"취향 컨텍스트:\n{state.get('rag_context') or '없음'}"
+        f"취향 컨텍스트:\n{state.get('rag_contexts', {}).get('food') or '없음'}"
     )
 
 

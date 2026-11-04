@@ -52,6 +52,6 @@ class DailyState(TypedDict):
 
     # 단일값 (마지막 write 승리)
     moodboard_url: str | None
-    rag_context: str
+    rag_contexts: dict[str, str]  # 에이전트별 취향 컨텍스트 (music|place|food|style)
     messages: list[dict]
     report_id: str
