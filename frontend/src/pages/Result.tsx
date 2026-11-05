@@ -101,6 +101,14 @@ function FeedbackBtns({ feedbackKey, ratings, onRate }: FeedbackBtnsProps) {
   );
 }
 
+function EmptyPicks() {
+  return (
+    <p className="text-xs text-stone-400">
+      지금은 추천을 불러오지 못했어요. 나머지 추천을 먼저 확인해 보세요.
+    </p>
+  );
+}
+
 export default function Result() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -200,6 +208,7 @@ export default function Result() {
               음악
             </h2>
             <div className="flex flex-col gap-3">
+              {result.music_picks.length === 0 && <EmptyPicks />}
               {result.music_picks.map((p: MusicPick, i) => (
                 <div
                   key={i}
@@ -239,6 +248,7 @@ export default function Result() {
               장소
             </h2>
             <div className="flex flex-col gap-3">
+              {result.place_picks.length === 0 && <EmptyPicks />}
               {result.place_picks.map((p: PlacePick, i) => (
                 <div
                   key={i}
@@ -276,6 +286,7 @@ export default function Result() {
               맛집
             </h2>
             <div className="flex flex-col gap-3">
+              {result.food_picks.length === 0 && <EmptyPicks />}
               {result.food_picks.map((p: FoodPick, i) => (
                 <div
                   key={i}
@@ -306,6 +317,7 @@ export default function Result() {
               스타일
             </h2>
             <div className="flex flex-col gap-3">
+              {result.style_picks.length === 0 && <EmptyPicks />}
               {result.style_picks.map((p: StylePick, i) => (
                 <div
                   key={i}
